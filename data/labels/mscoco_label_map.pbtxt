@@ -1,13 +1,13 @@
 item {
   name: "aruco_complete"
   id: 1
-  display_name: "Completo"
+  display_name: "Aruco Completo"
 }
 
 item {
   name: "aruco_ocluso"
   id: 2
-  display_name: "Ocluso"
+  display_name: "Aruco Ocluso"
 }
 
 
