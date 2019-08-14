@@ -58,7 +58,7 @@ LABEL_NAME = 'mscoco_label_map.pbtxt'
 PATH_TO_LABELS = os.path.join(os.path.dirname(sys.path[0]),'data','labels', LABEL_NAME)
 
 ###CHANGE NUMBER OF CLASSES HERE ####
-NUM_CLASSES = 90
+NUM_CLASSES = 2
 
 def _node_name(n):
   if n.startswith("^"):

@@ -14,7 +14,7 @@ To run Default SSD (Single Shot Detection) algorithm:
 
 2. Install camera dependencies
 
-    `sudo apt-get install ros-kinetic-usb_cam ros-kinetic-openni2-launch`
+    `sudo apt-get install ros-kinetic-usb-cam ros-kinetic-openni2-launch`
 
 3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux
 
@@ -45,6 +45,8 @@ To run Default SSD (Single Shot Detection) algorithm:
 7. Source catkin workspace's setup.bash:
 
     `source ~/catkin_ws/devel/setup.bash`
+	
+    `source ~/tensorflow/bin/activate`
 
 8. Plug in camera and launch Single Shot Detector (varies per camera, NOTE: `object_detect.launch` also launches the openni2.launch file for the camera. If you are using any other camera, please change the camera topic in the launch file before launching the file)
 
