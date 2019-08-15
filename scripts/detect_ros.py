@@ -31,7 +31,7 @@ from object_detection.utils import visualization_utils as vis_util
 GPU_FRACTION = 0.4
 
 ######### Set model here ############
-MODEL_NAME =  'ssd_mobilenet_v1_coco_11_06_2017'
+MODEL_NAME =  'ssd_mobilenet_v1_coco'
 # By default models are stored in data/models/
 MODEL_PATH = os.path.join(os.path.dirname(sys.path[0]),'data','models' , MODEL_NAME)
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
@@ -107,6 +107,8 @@ class Detector:
             category_index,
             use_normalized_coordinates=True,
             line_thickness=2)
+
+        #print("dimensions",objects[2])
 
         objArray.detections =[]
         objArray.header=data.header
