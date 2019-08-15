@@ -28,7 +28,7 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 # SET FRACTION OF GPU YOU WANT TO USE HERE
-GPU_FRACTION = 0.4
+GPU_FRACTION = 0.5
 
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
@@ -41,7 +41,7 @@ LABEL_NAME = 'mscoco_label_map.pbtxt'
 # By default label maps are stored in data/labels/
 PATH_TO_LABELS = os.path.join(os.path.dirname(sys.path[0]),'data','labels', LABEL_NAME)
 ######### Set the number of classes here #########
-NUM_CLASSES = 90
+NUM_CLASSES = 2
 
 detection_graph = tf.Graph()
 with detection_graph.as_default():
@@ -80,7 +80,9 @@ class Detector:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
-        image=cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
+        image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
+
+        #image_hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
 
         # the array based representation of the image will be used later in order to prepare the
         # result image with boxes and labels on it.
@@ -108,7 +110,7 @@ class Detector:
             use_normalized_coordinates=True,
             line_thickness=2)
 
-        #print("dimensions",objects[2])
+        #rospy.loginfo("publish dimensions: %d", int(dimensions_test[2]))
 
         objArray.detections =[]
         objArray.header=data.header
@@ -147,10 +149,16 @@ class Detector:
         obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
         obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
 
+        rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
+        rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
+        rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
+        rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
+
+
         return obj
 
 def main(args):
-    rospy.init_node('detector_node')
+    rospy.init_node('detector_node', log_level=rospy.DEBUG)
     obj=Detector()
     try:
         rospy.spin()
