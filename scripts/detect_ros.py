@@ -154,6 +154,19 @@ class Detector:
         rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
         rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
 
+        pixelDiametro = obj.bbox.size_x
+        # choose the bigest size
+        if(bj.bbox.size_x > obj.bbox.size_y):
+            pixelDiametro = obj.bbox.size_x
+        else:
+            pixelDiametro = obj.bbox.size_y
+
+        metersDiametro = 0.091
+        disMeter_real = 1
+
+        distFocus = (pixelDiametro * disMeter_real) / metersDiametro
+
+        rospy.loginfo("distFocus: %d", distFocus)
 
         return obj
 
