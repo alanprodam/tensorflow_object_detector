@@ -30,6 +30,9 @@ from object_detection.utils import visualization_utils as vis_util
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.5
 
+MAX_NUMBER_OF_BOXES = 2
+MINIMUM_CONFIDENCE = 0.98
+
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
 # By default models are stored in data/models/
@@ -107,8 +110,9 @@ class Detector:
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             category_index,
+            #min_score_thresh=MINIMUM_CONFIDENCE,
             use_normalized_coordinates=True,
-            line_thickness=2)
+            line_thickness=6)
 
         #rospy.loginfo("publish dimensions: %d", int(dimensions_test[2]))
 
@@ -156,17 +160,27 @@ class Detector:
 
         pixelDiametro = obj.bbox.size_x
         # choose the bigest size
-        if(bj.bbox.size_x > obj.bbox.size_y):
+        if(obj.bbox.size_x > obj.bbox.size_y):
             pixelDiametro = obj.bbox.size_x
         else:
             pixelDiametro = obj.bbox.size_y
 
-        metersDiametro = 0.091
-        disMeter_real = 1
+        metersDiametro = 0.24
+        disMeter_real = 0.60
 
-        distFocus = (pixelDiametro * disMeter_real) / metersDiametro
+        distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
 
-        rospy.loginfo("distFocus: %d", distFocus)
+        #rospy.loginfo("distFocus: %d", distFocus)
+
+        distFocus_real = 490
+
+        altura = float((metersDiametro * distFocus_real) / pixelDiametro)
+
+        rospy.loginfo("--------------------------------")
+        rospy.loginfo("metersDiametro: %f", metersDiametro)
+        rospy.loginfo("distFocus_real: %f", distFocus_real)
+        rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
+        rospy.loginfo("altura:         %f", altura)
 
         return obj
 
