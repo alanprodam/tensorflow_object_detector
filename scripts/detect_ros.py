@@ -110,7 +110,7 @@ class Detector:
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             category_index,
-            #min_score_thresh=MINIMUM_CONFIDENCE,
+            min_score_thresh=MINIMUM_CONFIDENCE,
             use_normalized_coordinates=True,
             line_thickness=6)
 
