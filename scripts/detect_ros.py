@@ -74,7 +74,7 @@ class Detector:
     def __init__(self):
         self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
         self.object_pub = rospy.Publisher("objects", Detection2DArray, queue_size=1)
-        #self.object_pub = rospy.Publisher("objects2", Detection2DArray, queue_size=1)
+        self.object_pub = rospy.Publisher("objects2", Detection2DArray, queue_size=1)
 
         # Create a supscriber from topic "image_raw"
         self.bridge = CvBridge()
