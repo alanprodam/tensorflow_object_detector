@@ -1,15 +1,27 @@
 #!/usr/bin/env python
-from __future__ import print_function
- 
-import roslib
-roslib.load_manifest('control_bebop_teleop')
-
-import sys, time, math
-import rospy
+import os, sys
 import cv2
+import numpy as np
+try:
+    import tensorflow as tf
+except ImportError:
+    print("unable to import TensorFlow. Is it installed?")
+    print(" source ~/tensorflow/bin/activate")
+    sys.exit(1)
+
+# ROS related imports
+import rospy
+from std_msgs.msg import String, Header
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge, CvBridgeError
+from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
+
+# Object detection module imports
+import object_detection
+from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util
 
 # numpy and scipy
-import numpy as np
 import matplotlib.pyplot as plt
 import h5py
 

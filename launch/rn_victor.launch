@@ -8,7 +8,7 @@
     <param name="video_device" value="/dev/video1"/>
   </node>
 
-  <node pkg="image_view" type="image_view" name="image_view">
+<!--   <node pkg="image_view" type="image_view" name="image_view">
     <remap from="image" to="debug_image"/>
-  </node>
+  </node> -->
 </launch>

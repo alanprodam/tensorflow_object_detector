@@ -44,6 +44,7 @@ class hough_lines:
 
     parametersLeftRigth = np.load(PARAMETERS_PATH+'/parametersLeftRigth.npy', allow_pickle=True).item()
     parametersCurvenonCurve = np.load(PARAMETERS_PATH+'/parametersCurvenonCurve.npy', allow_pickle=True).item()
+
     num_px = 224
     dim = (224, 224)
     numLines=3 
@@ -51,22 +52,31 @@ class hough_lines:
     #rospy.loginfo(parametersCurvenonCurve)
 
     image = np.array(src_image)
-    img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
+    img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA).reshape((num_px*num_px*3,1))
 
-    #a = np.array([[1,2],[3,4]]) 
-    #b = np.array([[11,12],[13,14]]) 
-    #print(np.dot(a,b))
 
-    #W = 1
+    # W = np.array([[1,2],[3,4]]) 
+    # A = np.array([[11,12],[13,14]])
+    # b = np.array([[2,2],[3,3]]) 
+    # #print(np.dot(a,b))
 
-    #Z = W.dot(img_resized)
+    # Z = W.dot(A)+b
+    # #Z = np.dot(a,b)
 
-    #print(Z)
+    # print("******DEBUG******")
+    # print("A-Shape: ",A.shape)
+    # print("W-Shape: ",W.shape)
+    # print("b-Shape: ",b.shape)
+    # print("Result",Z)
+
+    #rospy.loginfo("Z: %f",Z)
 
     #linear_forward(img_resized, 1, 1)
 
     #A, cache = linear_activation_forward(img_resized, parametersCurvenonCurve['W' + str(1)], parametersCurvenonCurve['b' + str(1)], activation = "relu")
-    predict_curve(img_resized,parametersCurvenonCurve)
+    print("Saida: ",predict_curve(img_resized,parametersCurvenonCurve))
+
+
 
     cv2.imshow("Image",src_image)
     #cv2.imshow("Image-edges",edges)
@@ -238,10 +248,10 @@ def linear_forward(A, W, b):
     cache -- a python dictionary containing "A", "W" and "b" ; stored for computing the backward pass efficiently
     """
     
-    print("******DEBUG******")
-    print("A-Shape: ",A.shape)
-    print("W-Shape: ",W.shape)
-    print("b-Shape: ",b.shape)
+    # rospy.loginfo("******DEBUG******")
+    # print("A-Shape: ",A.shape)
+    # print("W-Shape: ",W.shape)
+    # print("b-Shape: ",b.shape)
 
     Z = W.dot(A) + b
     #Z = np.dot(A,W) + b
