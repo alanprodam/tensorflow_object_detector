@@ -1,46 +1,54 @@
 #!/usr/bin/env python
-from __future__ import print_function
- 
-import roslib
-roslib.load_manifest('control_bebop_teleop')
-
-import sys, time, math, os
-import rospy
+import os, sys
 import cv2
-
-# numpy and scipy
 import numpy as np
+try:
+    import tensorflow as tf
+except ImportError:
+    print("unable to import TensorFlow. Is it installed?")
+    print(" source ~/tensorflow/bin/activate")
+    sys.exit(1)
 
+# ROS related imports
+import rospy
+from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
-from geometry_msgs.msg import Twist
-from std_msgs.msg import String
+from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 
-PARAMETERS_PATH = os.path.join(os.path.dirname(sys.path[0]),'Parameters')
+# Object detection module imports
+import object_detection
+from object_detection.utils import label_map_util
+from object_detection.utils import visualization_utils as vis_util
+
+from geometry_msgs.msg import Twist
+
+PARAMETERS_PATH = os.path.join(os.path.dirname(sys.path[0]),'data','Parameters')
 
 class hough_lines:
  
   def __init__(self):
-    self.image_pub = rospy.Publisher("bebop/image_hough",Image, queue_size=100) 
+    self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
     
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback)
+    self.image_sub = rospy.Subscriber("image",Image,self.callback, queue_size=1, buff_size=2**24)
 
 ###############################################################################
    
   def callback(self,data):
-    numLines=3 
-
     try:
       src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
       print(e)
 
-    parametersLeftRigth = np.load('/home/acta/bebop_ws/src/control_bebop_teleop/Parameters/parametersLeftRigth.npy', allow_pickle=True).item()
-    parametersCurvenonCurve = np.load('/home/acta/bebop_ws/src/control_bebop_teleop/Parameters/parametersCurvenonCurve.npy', allow_pickle=True).item()
+    parametersLeftRigth = np.load(PARAMETERS_PATH+'/parametersLeftRigth.npy', allow_pickle=True).item()
+    parametersCurvenonCurve = np.load(PARAMETERS_PATH+'/parametersCurvenonCurve.npy', allow_pickle=True).item()
     num_px = 224
     dim = (224, 224)
+    numLines=3 
+
+    #rospy.loginfo(parametersCurvenonCurve)
 
     image = np.array(src_image)
     img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA)
@@ -60,7 +68,7 @@ class hough_lines:
     #A, cache = linear_activation_forward(img_resized, parametersCurvenonCurve['W' + str(1)], parametersCurvenonCurve['b' + str(1)], activation = "relu")
     predict_curve(img_resized,parametersCurvenonCurve)
 
-    cv2.imshow("Image",img_resized)
+    cv2.imshow("Image",src_image)
     #cv2.imshow("Image-edges",edges)
     cv2.waitKey(1)
 
@@ -531,7 +539,7 @@ def main(args):
 
   ic = hough_lines()
   #-- Name of node
-  rospy.init_node('hough')
+  rospy.init_node('hough', log_level=rospy.DEBUG)
 
   try:
       rospy.spin()

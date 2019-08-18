@@ -1,5 +1,5 @@
 <launch>
-	<node pkg= "tensorflow_object_detector" name="hough_image" type="hough_image.py"  output="screen"> 
+	<node pkg= "tensorflow_object_detector" name="callRCNN" type="callRCNN.py"  output="screen"> 
     <remap from="image" to="/usb_cam_node/image_raw"/>
 	</node>
 
