@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-## Author: Rohit
-## Date: July, 25, 2017
+## Author: Alan Tavares
+## Date: August, 12, 2019
 # Purpose: Ros node to detect objects using tensorflow
-
 import os
 import sys
 import cv2
@@ -28,7 +27,9 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
 # SET FRACTION OF GPU YOU WANT TO USE HERE
-GPU_FRACTION = 0.5
+GPU_FRACTION = 0.4
+
+DISTANCE_FOCAL = 490
 
 MAX_NUMBER_OF_BOXES = 2
 MINIMUM_CONFIDENCE = 0.98
@@ -73,11 +74,13 @@ class Detector:
     def __init__(self):
         self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
         self.object_pub = rospy.Publisher("objects", Detection2DArray, queue_size=1)
+
+        # Create a supscriber from topic "image_raw"
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("image", Image, self.image_cb, queue_size=1, buff_size=2**24)
+        self.image_sub = rospy.Subscriber("image", Image, self.image_callback, queue_size=1, buff_size=2**24)
         self.sess = tf.Session(graph=detection_graph,config=config)
 
-    def image_cb(self, data):
+    def image_callback(self, data):
         objArray = Detection2DArray()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -85,7 +88,7 @@ class Detector:
             print(e)
         image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
 
-        #image_hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
+        # image_hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
 
         # the array based representation of the image will be used later in order to prepare the
         # result image with boxes and labels on it.
@@ -110,16 +113,17 @@ class Detector:
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             category_index,
-            #min_score_thresh=MINIMUM_CONFIDENCE,
+            min_score_thresh=MINIMUM_CONFIDENCE,
             use_normalized_coordinates=True,
             line_thickness=6)
-
-        #rospy.loginfo("publish dimensions: %d", int(dimensions_test[2]))
 
         objArray.detections =[]
         objArray.header=data.header
         object_count=1
 
+        #rospy.loginfo("publish: %f", data.header)
+
+        # Object search
         for i in range(len(objects)):
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
@@ -128,10 +132,12 @@ class Detector:
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()
+
         try:
             image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
         except CvBridgeError as e:
             print(e)
+
         image_out.header = data.header
         self.image_pub.publish(image_out)
 
@@ -153,36 +159,84 @@ class Detector:
         obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
         obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
 
-        rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
-        rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
-        rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
-        rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
-
-        pixelDiametro = obj.bbox.size_x
-        # choose the bigest size
-        if(obj.bbox.size_x > obj.bbox.size_y):
-            pixelDiametro = obj.bbox.size_x
-        else:
-            pixelDiametro = obj.bbox.size_y
-
-        metersDiametro = 0.24
-        disMeter_real = 0.60
-
-        distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
-
-        #rospy.loginfo("distFocus: %d", distFocus)
-
-        distFocus_real = 490
-
-        altura = float((metersDiametro * distFocus_real) / pixelDiametro)
-
-        rospy.loginfo("--------------------------------")
-        rospy.loginfo("metersDiametro: %f", metersDiametro)
-        rospy.loginfo("distFocus_real: %f", distFocus_real)
-        rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
-        rospy.loginfo("altura:         %f", altura)
+        # rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
+        # rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
+        # rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
+        # rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
 
         return obj
+
+    # def distFocus(self,radius,object_data,image):
+    #     image_height,image_width,channels = image.shape
+    #     obj=Detection2D()
+    #     dimensions=object_data[2]
+
+    #     obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
+    #     obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
+    #     obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
+    #     obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
+
+    #     pixelDiametro = obj.bbox.size_x
+    #     # choose the bigest size
+    #     if(obj.bbox.size_x > obj.bbox.size_y):
+    #         pixelDiametro = obj.bbox.size_x
+    #     else:
+    #         pixelDiametro = obj.bbox.size_y
+
+    #     metersDiametro = 0.24
+    #     disMeter_real = 0.60
+
+    #     distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
+
+    #     #rospy.loginfo("distFocus: %d", distFocus)
+
+    #     distFocus_real = 490
+
+    #     altura = float((metersDiametro * distFocus_real) / pixelDiametro)
+
+    #     rospy.loginfo("--------------------------------")
+    #     rospy.loginfo("metersDiametro: %f", metersDiametro)
+    #     rospy.loginfo("distFocus_real: %f", distFocus_real)
+    #     rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
+    #     rospy.loginfo("altura:         %f", altura)
+    
+    #     return distFocus_real
+
+    # def distanceLandmarck(self,radius,object_data,image):
+    #     image_height,image_width,channels = image.shape
+    #     obj=Detection2D()
+    #     dimensions=object_data[2]
+
+    #     obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
+    #     obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
+    #     obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
+    #     obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
+
+    #     pixelDiametro = obj.bbox.size_x
+    #     # choose the bigest size
+    #     if(obj.bbox.size_x > obj.bbox.size_y):
+    #         pixelDiametro = obj.bbox.size_x
+    #     else:
+    #         pixelDiametro = obj.bbox.size_y
+
+    #     metersDiametro = 0.24
+    #     disMeter_real = 0.60
+
+    #     distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
+
+    #     #rospy.loginfo("distFocus: %d", distFocus)
+
+    #     distFocus_real = 490
+
+    #     altura = float((metersDiametro * distFocus_real) / pixelDiametro)
+
+    #     rospy.loginfo("--------------------------------")
+    #     rospy.loginfo("metersDiametro: %f", metersDiametro)
+    #     rospy.loginfo("distFocus_real: %f", distFocus_real)
+    #     rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
+    #     rospy.loginfo("altura:         %f", altura)
+    
+    #     return distFocus_real
 
 def main(args):
     rospy.init_node('detector_node', log_level=rospy.DEBUG)
