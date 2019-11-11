@@ -164,8 +164,6 @@ class Detector:
         # rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
         # rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
 
-        #self.distFocus()
-
         return obj
 
     # def distFocus(self,radius,object_data,image):

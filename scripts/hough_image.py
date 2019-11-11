@@ -72,7 +72,7 @@ class hough_lines:
                         x = x+x1+x2 
     
 
-    cv2.imshow("Image",src_image)
+    cv2.imshow("Image-lines",src_image)
     #cv2.imshow("Image-edges",edges)
     cv2.waitKey(1)
 

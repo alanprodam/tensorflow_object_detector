@@ -55,27 +55,12 @@ class hough_lines:
     img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA).reshape((num_px*num_px*3,1))
 
 
-    # W = np.array([[1,2],[3,4]]) 
-    # A = np.array([[11,12],[13,14]])
-    # b = np.array([[2,2],[3,3]]) 
-    # #print(np.dot(a,b))
+    out = int(predict_curve(img_resized,parametersCurvenonCurve))
 
-    # Z = W.dot(A)+b
-    # #Z = np.dot(a,b)
-
-    # print("******DEBUG******")
-    # print("A-Shape: ",A.shape)
-    # print("W-Shape: ",W.shape)
-    # print("b-Shape: ",b.shape)
-    # print("Result",Z)
-
-    #rospy.loginfo("Z: %f",Z)
-
-    #linear_forward(img_resized, 1, 1)
-
-    #A, cache = linear_activation_forward(img_resized, parametersCurvenonCurve['W' + str(1)], parametersCurvenonCurve['b' + str(1)], activation = "relu")
-    print("Saida: ",predict_curve(img_resized,parametersCurvenonCurve))
-
+    if out == 0:
+        rospy.loginfo("Curva")
+    else:
+        rospy.loginfo("Reta")
 
 
     cv2.imshow("Image",src_image)
