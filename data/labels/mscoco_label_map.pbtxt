@@ -1,13 +1,5 @@
 item {
-  name: "aruco_complete"
+  name: 'aruco_completo'
   id: 1
-  display_name: "Aruco Completo"
+  display_name: "Completo"
 }
-
-item {
-  name: "aruco_ocluso"
-  id: 2
-  display_name: "Aruco Ocluso"
-}
-
-

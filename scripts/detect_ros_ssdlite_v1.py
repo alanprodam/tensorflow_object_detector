@@ -32,7 +32,7 @@ GPU_FRACTION = 0.4
 DISTANCE_FOCAL = 490
 
 MAX_NUMBER_OF_BOXES = 1
-MINIMUM_CONFIDENCE = 0.99
+MINIMUM_CONFIDENCE = 0.98
 
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
