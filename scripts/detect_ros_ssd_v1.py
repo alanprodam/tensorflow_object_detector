@@ -30,6 +30,7 @@ from object_detection.utils import visualization_utils as vis_util
 GPU_FRACTION = 0.4
 
 DISTANCE_FOCAL = 490
+DIAMETER_LANDMARCK_M = 0.5
 
 MAX_NUMBER_OF_BOXES = 1
 MINIMUM_CONFIDENCE = 0.97
@@ -128,6 +129,9 @@ class Detector:
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
 
+            #call fuction to return z of drone
+            z_drone = distanceLandmarck(self.distanceLandmarck(objects[i],cv_image))
+
         self.object_pub.publish(objArray)
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
@@ -154,11 +158,12 @@ class Detector:
         obj_hypothesis.id = object_id
         obj_hypothesis.score = object_score
         obj.results.append(obj_hypothesis)
-        obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
-        obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
+        obj.bbox.size_y = int((dimensions[2] - dimensions[0])*image_height)
+        obj.bbox.size_x = int((dimensions[3] - dimensions[1])*image_width)
         obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
         obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
 
+        rospy.loginfo("publish obj_hypothesis.score: %d", object_score)
         # rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
         # rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
         # rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
@@ -202,41 +207,38 @@ class Detector:
     
     #     return distFocus_real
 
-    # def distanceLandmarck(self,radius,object_data,image):
-    #     image_height,image_width,channels = image.shape
-    #     obj=Detection2D()
-    #     dimensions=object_data[2]
+    def distanceLandmarck(self,object_data,image):
+        image_height,image_width,channels = image.shape
+        obj=Detection2D()
+        dimensions=object_data[2]
 
-    #     obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
-    #     obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
-    #     obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
-    #     obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
+        obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
+        obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
+        obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
+        obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
 
-    #     pixelDiametro = obj.bbox.size_x
-    #     # choose the bigest size
-    #     if(obj.bbox.size_x > obj.bbox.size_y):
-    #         pixelDiametro = obj.bbox.size_x
-    #     else:
-    #         pixelDiametro = obj.bbox.size_y
+        pixelDiametro = obj.bbox.size_x
+        # choose the bigest size
+        if(obj.bbox.size_x > obj.bbox.size_y):
+            pixelDiametro = obj.bbox.size_x
+        else:
+            pixelDiametro = obj.bbox.size_y
 
-    #     metersDiametro = 0.24
-    #     disMeter_real = 0.60
+        #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+        metersDiametroLandmarck = DIAMETER_LANDMARCK_M
 
-    #     distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
+        #DISTANCE_FOCAL = 490
+        distFocus_real = DISTANCE_FOCAL
 
-    #     #rospy.loginfo("distFocus: %d", distFocus)
+        altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-    #     distFocus_real = 490
-
-    #     altura = float((metersDiametro * distFocus_real) / pixelDiametro)
-
-    #     rospy.loginfo("--------------------------------")
-    #     rospy.loginfo("metersDiametro: %f", metersDiametro)
-    #     rospy.loginfo("distFocus_real: %f", distFocus_real)
-    #     rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
-    #     rospy.loginfo("altura:         %f", altura)
+        rospy.loginfo("--------------------------------")
+        rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        rospy.loginfo("Altura Drone (m):        %f", altura)
     
-    #     return distFocus_real
+        return altura
 
 def main(args):
     rospy.init_node('detector_node', log_level=rospy.DEBUG)
