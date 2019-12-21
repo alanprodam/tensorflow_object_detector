@@ -58,6 +58,13 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `roslaunch tensorflow_object_detector usb_cam_detector.launch`
 
+    OR
+
+    `roslaunch tensorflow_object_detector drone_detector.launch`
+
+    OR
+
+    `roslaunch tensorflow_object_detector rn_victor.launch`
 
 If you want to try any other ML model:
 
