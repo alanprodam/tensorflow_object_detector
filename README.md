@@ -16,7 +16,7 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `sudo apt-get install ros-kinetic-usb-cam ros-kinetic-openni2-launch`
 
-3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux
+3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux or (virtualenv)[https://pythonacademy.com.br/blog/python-e-virtualenv-como-programar-em-ambientes-virtuais]
 
     `sudo apt-get install python-pip python-dev python-virtualenv`
 
@@ -28,7 +28,9 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `pip install --upgrade tensorflow`
 
-4. `mkdir ~/catkin_ws/ && mkdir ~/catkin_ws/src/`
+4. Create folder and src
+
+    `mkdir ~/catkin_ws/ && mkdir ~/catkin_ws/src/`
 
 5. Clone standard Vision messages repository and this repository into `catkin_ws/src`:
 

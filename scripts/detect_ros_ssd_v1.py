@@ -33,7 +33,7 @@ DISTANCE_FOCAL = 750
 DIAMETER_LANDMARCK_M = 0.5
 
 MAX_NUMBER_OF_BOXES = 1
-MINIMUM_CONFIDENCE = 0.98
+MINIMUM_CONFIDENCE = 0.99
 
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
@@ -125,14 +125,14 @@ class Detector:
         #rospy.loginfo("publish: %f", data.header)
 
         # Object search
-        for i in range(len(objects)):
-            object_count+=1
-            objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+        # for i in range(len(objects)):
+        #     object_count+=1
+        #     objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
 
-            #call fuction to return z of drone
-            z_drone = self.distanceLandmarck(objects[i],cv_image)
+        #     #call fuction to return z of drone
+        #     z_drone = self.distanceLandmarck(objects[i],cv_image)
 
-        self.object_pub.publish(objArray)
+        # self.object_pub.publish(objArray)
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()

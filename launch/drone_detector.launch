@@ -3,8 +3,8 @@
     <remap from="image" to="/bebop/image_raw"/> <!-- /bebop/image_raw or /usb_cam_node/image_raws-->
 	</node>
 
-  <node pkg="image_view" type="image_view" name="image_view">
+<!--   <node pkg="image_view" type="image_view" name="image_view">
     <remap from="image" to="debug_image"/>
-  </node>
+  </node> -->
   
 </launch>
