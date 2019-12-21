@@ -16,7 +16,7 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `sudo apt-get install ros-kinetic-usb-cam ros-kinetic-openni2-launch`
 
-3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux or (virtualenv)[https://pythonacademy.com.br/blog/python-e-virtualenv-como-programar-em-ambientes-virtuais]
+3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux or [virtualenv](https://pythonacademy.com.br/blog/python-e-virtualenv-como-programar-em-ambientes-virtuais)
 
     `sudo apt-get install python-pip python-dev python-virtualenv`
 
