@@ -1,5 +1,5 @@
 item {
-  name: 'aruco_completo'
+  name: 'landmark'
   id: 1
-  display_name: "Completo"
+  display_name: "Marcador Híbrido"
 }
