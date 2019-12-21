@@ -29,11 +29,11 @@ from object_detection.utils import visualization_utils as vis_util
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.4
 
-DISTANCE_FOCAL = 490
+DISTANCE_FOCAL = 750
 DIAMETER_LANDMARCK_M = 0.5
 
 MAX_NUMBER_OF_BOXES = 1
-MINIMUM_CONFIDENCE = 0.97
+MINIMUM_CONFIDENCE = 0.98
 
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
@@ -130,7 +130,7 @@ class Detector:
             objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
 
             #call fuction to return z of drone
-            z_drone = distanceLandmarck(self.distanceLandmarck(objects[i],cv_image))
+            z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
