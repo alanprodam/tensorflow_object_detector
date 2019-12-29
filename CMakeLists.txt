@@ -17,9 +17,11 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ##set the URL to download
-set(URL "https://gitlab.com/alanprodam/rcnn_colab/raw/alan-working/marcador_real_images/model/ssd_mobilenet_v1_coco.tar.gz")
+set(URL "https://gitlab.com/alanprodam/rcnn_landmark/raw/master/deteccion/model/ssd_mobilenet_v1_coco.tar.gz")
 set(DOWNLOAD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/data/models/ssd_mobilenet_v1_coco.tar.gz)
 set(EXTRACTED_PATH ${CMAKE_CURRENT_SOURCE_DIR}/data/models)
+
+
 
 if (NOT EXISTS "${EXTRACTED_PATH}/ssd_mobilenet_v1_coco")
   if (NOT EXISTS "${DOWNLOAD_PATH}")
@@ -36,7 +38,7 @@ if (NOT EXISTS "${EXTRACTED_PATH}/ssd_mobilenet_v1_coco")
   )
 endif()
 
-file(REMOVE ${DOWNLOAD_PATH})
+#file(REMOVE ${DOWNLOAD_PATH})
 	
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

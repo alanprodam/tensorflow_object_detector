@@ -52,6 +52,10 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `source ~/tensorflow/bin/activate`
 
+    > **Note:** This command needs to run from every new terminal you start. some questions can be easily taken from the links [stackoverflow](https://stackoverflow.com/questions/57614436/od-graph-def-tf-graphdef-attributeerror-module-tensorflow-has-no-attribut). Take care if all object detection notebooks and models have not been verified with TF 2.0. 
+
+    `python -m pip install tensorflow==1.14`
+
 8. Plug in camera and launch Single Shot Detector (varies per camera, NOTE: `object_detect.launch` also launches the openni2.launch file for the camera. If you are using any other camera, please change the camera topic in the launch file before launching the file)
 
     `roslaunch tensorflow_object_detector object_detect.launch`
