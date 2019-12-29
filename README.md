@@ -52,7 +52,7 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `source ~/tensorflow/bin/activate`
 
-    > **Note:** This command needs to run from every new terminal you start. some questions can be easily taken from the links [stackoverflow](https://stackoverflow.com/questions/57614436/od-graph-def-tf-graphdef-attributeerror-module-tensorflow-has-no-attribut). Take care if all object detection notebooks and models have not been verified with TF 2.0. 
+    > **Note:** This command needs to run from every new terminal you start. some questions can be easily taken from the links [stackoverflow](https://stackoverflow.com/questions/57614436/od-graph-def-tf-graphdef-attributeerror-module-tensorflow-has-no-attribut). Take care if all object detection notebooks and models have not been verified with TF 2.0. [Tensorflow](https://github.com/tensorflow/models/issues/7703)
 
     `python -m pip install tensorflow==1.14`
 
