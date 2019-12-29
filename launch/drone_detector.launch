@@ -1,10 +1,10 @@
 <launch>
 	<node pkg= "tensorflow_object_detector" name="model_ssd_v1" type="detect_ros_ssd_v1.py"  output="screen"> 
-    <remap from="image" to="/bebop/image_raw"/> <!-- /bebop/image_raw or /usb_cam_node/image_raws-->
+		<remap from="image" to="/bebop/image_raw"/> <!-- /bebop/image_raw or /usb_cam_node/image_raws-->
 	</node>
 
-<!--   <node pkg="image_view" type="image_view" name="image_view">
-    <remap from="image" to="debug_image"/>
-  </node> -->
+	<node pkg="image_view" type="image_view" name="image_out">
+		<remap from="image" to="debug_image"/>
+	</node>
   
 </launch>

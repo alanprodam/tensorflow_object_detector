@@ -16,7 +16,7 @@ except ImportError:
 
 # ROS related imports
 import rospy
-from std_msgs.msg import String , Header
+from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
@@ -69,7 +69,6 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = GPU_FRACTION
 
 # Detection
-
 class Detector:
 
     def __init__(self):
@@ -103,9 +102,10 @@ class Detector:
         # Score is shown on the result image, together with the class label.
         scores = detection_graph.get_tensor_by_name('detection_scores:0')
         classes = detection_graph.get_tensor_by_name('detection_classes:0')
+        # Number of objects detected
         num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-        (boxes, scores, classes, num_detections) = self.sess.run([boxes, scores, classes, num_detections],
+        (boxes, scores, classes, num) = self.sess.run([detection_boxes, detection_scores, detection_classes, num_detections],
             feed_dict={image_tensor: image_np_expanded})
 
         objects=vis_util.visualize_boxes_and_labels_on_image_array(
@@ -122,17 +122,17 @@ class Detector:
         objArray.header=data.header
         object_count=1
 
-        #rospy.loginfo("publish: %f", data.header)
+        rospy.loginfo("publish: %f", data.header)
 
         # Object search
-        # for i in range(len(objects)):
-        #     object_count+=1
-        #     objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+        for i in range(len(objects)):
+            object_count+=1
+            objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
 
-        #     #call fuction to return z of drone
-        #     z_drone = self.distanceLandmarck(objects[i],cv_image)
+            #call fuction to return z of drone
+            z_drone = self.distanceLandmarck(objects[i],cv_image)
 
-        # self.object_pub.publish(objArray)
+        self.object_pub.publish(objArray)
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()
