@@ -9,9 +9,11 @@ include(ExternalData)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  message_generation
   cv_bridge
   rospy
   sensor_msgs
+  geometry_msgs
   std_msgs
   vision_msgs
 )
@@ -135,7 +137,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/hough_image.py 
+catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/detect_ros_ssd_v1.py 
 			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 ###########
 ## Build ##
