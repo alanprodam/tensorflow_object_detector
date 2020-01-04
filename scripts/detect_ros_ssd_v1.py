@@ -26,6 +26,9 @@ import object_detection
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
+#-- Font for the text in the image
+font = cv2.FONT_HERSHEY_PLAIN
+
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.4
 
@@ -129,12 +132,16 @@ class Detector:
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
             #call fuction to return z of drone
-            z_drone = self.distanceLandmarck(objects[i],cv_image)
+            #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()
+
+        #-- Print 'X' in the center of the camera
+        image_height,image_width,channels = img.shape
+        cv2.putText(img, "X", (image_width/2, image_height/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
         try:
             image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
@@ -156,11 +163,44 @@ class Detector:
         obj.header=header
         obj_hypothesis.id = object_id
         obj_hypothesis.score = object_score
-        obj.results.append(obj_hypothesis)
+        #obj.results.append(obj_hypothesis)
         obj.bbox.size_y = int((dimensions[2] - dimensions[0])*image_height)
         obj.bbox.size_x = int((dimensions[3] - dimensions[1])*image_width)
-        obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
-        obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
+        obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_width/2)
+        obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_height/2)
+
+        ###################################
+        pixelDiametro = obj.bbox.size_x
+        # choose the bigest size
+        if(obj.bbox.size_x > obj.bbox.size_y):
+            pixelDiametro = obj.bbox.size_x
+        else:
+            pixelDiametro = obj.bbox.size_y
+
+        #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+        metersDiametroLandmarck = DIAMETER_LANDMARCK_M
+
+        #DISTANCE_FOCAL = 490
+        distFocus_real = DISTANCE_FOCAL
+
+        altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
+
+        rospy.loginfo("--------------------------------")
+        rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        rospy.loginfo("Altura Drone (m):        %f", altura)
+        ###################################
+
+        pixel_x = int((obj.bbox.center.x-(image_width/2))*(-1))
+        pixel_y = int((obj.bbox.center.y-(image_height/2))*(1))
+
+        k = float(metersDiametroLandmarck/pixelDiametro)
+
+        obj_hypothesis.pose.pose.position.x = pixel_x*k
+        obj_hypothesis.pose.pose.position.y = pixel_y*k
+        obj_hypothesis.pose.pose.position.z = altura
+        obj.results.append(obj_hypothesis)
 
         #rospy.loginfo("publish obj_hypothesis.score: %d", object_score)
         # rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
@@ -209,6 +249,8 @@ class Detector:
     def distanceLandmarck(self,object_data,image):
         image_height,image_width,channels = image.shape
         obj=Detection2D()
+        obj_hypothesis= ObjectHypothesisWithPose()
+
         dimensions=object_data[2]
 
         obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
@@ -236,7 +278,7 @@ class Detector:
         rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
         rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
         rospy.loginfo("Altura Drone (m):        %f", altura)
-    
+
         return altura
 
 def main(args):
