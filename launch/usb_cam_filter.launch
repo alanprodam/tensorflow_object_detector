@@ -1,0 +1,5 @@
+<launch>
+
+	<node pkg= "tensorflow_object_detector" name="filter" type="fusion_filter_kalman.py"  output="screen"> </node>
+
+</launch>
