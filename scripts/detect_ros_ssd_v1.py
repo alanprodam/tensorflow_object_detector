@@ -125,8 +125,6 @@ class Detector:
         objArray.header=data.header
         object_count=1
 
-        #rospy.loginfo("publish: %f", data.header)
-
         # Object search
         for i in range(len(objects)):
             object_count+=1
@@ -153,8 +151,8 @@ class Detector:
 
     def object_predict(self,object_data, header, image_np,image):
         image_height,image_width,channels = image.shape
-        obj=Detection2D()
-        obj_hypothesis= ObjectHypothesisWithPose()
+        obj = Detection2D()
+        obj_hypothesis = ObjectHypothesisWithPose()
 
         object_id=object_data[0]
         object_score=object_data[1]

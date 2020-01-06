@@ -60,7 +60,7 @@ class Kalman(object):
         self.P = self.F * self.P * self.F.getT()
 
 class Subscriber(object):
-    """docstring for Subscriber"""
+    
     def __init__(self):
         super(Subscriber, self).__init__()
         rospy.init_node('filter_node', anonymous=True, log_level=rospy.DEBUG)
@@ -75,21 +75,59 @@ class Subscriber(object):
         #self.sub_aruco = rospy.Subscriber('bebop/pose_aruco', Odometry)
 
         # create the important subscribers
-        self.sub_rcnn = rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
-        self.sub_aruco = rospy.Subscriber("bebop/pose_aruco", Odometry, self.callbackPoseAruco)
-        #rospy.Subscriber("bebop/pose_aruco",Odometry, self.callbackPoseAruco)
-        #rospy.Subscriber('accelerometer', Vector3, self.callback_accel)
-        rospy.spin()
+        #self.sub_rcnn = rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
+        #self.sub_aruco = rospy.Subscriber("bebop/pose_aruco", Odometry, self.callbackPoseAruco)
+        
+        rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
+        # rospy.Subscriber("bebop/pose_aruco",Odometry, self.callbackPoseAruco)
+        
+
+        try: 
+            rospy.spin()
+        except rospy.ROSInterruptException:
+            print("Shutting down")
 
     def callbackPoseRCNN(self, data):
-        global rcnn_pose
+        global obj, obj_hypothesis
         # recive data
         objArray = Detection2DArray()
-        rcnn_pose = data
+
+        obj=Detection2D()
+        obj_hypothesis= ObjectHypothesisWithPose()
+
+        # rcnn_pose 
+        objArray = data
+
+        obj = objArray.detections
+
+        rospy.loginfo(" lenth obj: %f", len(obj))
+
+        for i in range(len(obj)):
+            rospy.loginfo("************* frame %d", i)
+            object_id = obj[i].header.frame_id
+            rospy.loginfo(" object_id: %s", object_id)
+            result_id = obj[i].results[0].id
+            rospy.loginfo(" result_id: %s", result_id)
+            object_score = obj[i].results[0].score
+            rospy.loginfo(" result_score: %f", object_score)
+            # pose
+            object_pose = obj[i].results[0].pose.pose.position.x
+            rospy.loginfo(" result_pose.x: %f", object_pose)
+        
+        if len(obj) != 0:
+            obj_hypothesis.id = obj[0].results[0].id
+            obj_hypothesis.score = obj[0].results[0].score
+            obj_hypothesis.pose.pose.position.x = obj[0].results[0].pose.pose.position.x
+            obj_hypothesis.pose.pose.position.x = obj[0].results[0].pose.pose.position.y
+            obj_hypothesis.pose.pose.position.x = obj[0].results[0].pose.pose.position.z
+
+
 
     def callbackPoseAruco(self, data):
         # recive data
         aruco_pose = data
+        rospy.loginfo(rcnn_pose.pose.pose.position.z)
+
         # print "received data: ", data
         #Z = np.matrix([data.x,data.y,data.z]).getT()
         Z = np.matrix([1,1,10]).getT()
@@ -102,9 +140,17 @@ class Subscriber(object):
         self.kalman.predict()
 
         vec = Vector3()
-        vec.x = self.kalman.x[0]
-        vec.y = self.kalman.x[1]
-        vec.z = self.kalman.x[2]
+        # vec.x = self.kalman.x[0]
+        # vec.y = self.kalman.x[1]
+        # vec.z = self.kalman.x[2]
+        vec.x = 1
+        vec.y = 2
+        vec.z = 3
+
+        rospy.loginfo("--------------------------------")
+        rospy.loginfo("X (m): %f", vec.x)
+        rospy.loginfo("Y (m): %f", vec.y)
+        rospy.loginfo("Z (m): %f", vec.z)
 
         self.pub_hibrid.publish(vec)
 
