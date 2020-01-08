@@ -183,11 +183,11 @@ class Detector:
 
         altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-        rospy.loginfo("--------------------------------")
-        rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
-        rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
-        rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
-        rospy.loginfo("Altura Drone (m):        %f", altura)
+        # rospy.loginfo("--------------------------------")
+        # rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        # rospy.loginfo("Altura Drone (m):        %f", altura)
         ###################################
 
         pixel_x = int((obj.bbox.center.x-(image_width/2))*(-1))

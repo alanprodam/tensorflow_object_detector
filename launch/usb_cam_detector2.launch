@@ -1,0 +1,20 @@
+<launch>
+	<node pkg= "tensorflow_object_detector" name="detect_rcnn" type="detect_rcnn.py"  output="screen"> 
+    <remap from="image" to="/usb_cam_node/image_raw"/> 
+  </node>
+
+  <node pkg= "tensorflow_object_detector" name="detect_aruco" type="detect_aruco.py"  output="screen"> 
+  </node>
+
+  <node pkg="usb_cam" type="usb_cam_node" name="usb_cam_node" output="screen">
+    <param name="pixel_format" value="yuyv"/>
+    <param name="video_device" value="/dev/video1"/>
+  </node>
+
+<!--   <node pkg= "tensorflow_object_detector" name="filter" type="fusion_filter_kalman.py"  output="screen"> 
+  </node> -->
+
+  <node pkg="image_view" type="image_view" name="image_view">
+    <remap from="image" to="debug_image"/>
+  </node>
+</launch>

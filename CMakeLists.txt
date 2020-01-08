@@ -137,7 +137,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/detect_ros_ssd_v1.py 
+catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/detect_rcnn.py scripts/detect_aruco.py
 			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 ###########
 ## Build ##
