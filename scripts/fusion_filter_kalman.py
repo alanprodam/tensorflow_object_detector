@@ -65,7 +65,7 @@ class Subscriber(object):
         super(Subscriber, self).__init__()
         rospy.init_node('filter_node', anonymous=True, log_level=rospy.DEBUG)
 
-        self.kalman = Kalman(n_states = 9, n_sensors = 9)
+        self.kalman = Kalman(n_states = 2, n_sensors = 2)
         self.kalman.H = np.matrix(np.identity(self.kalman.n_states))
         self.kalman.P *= 10
         self.kalman.R *= 0.01
@@ -134,9 +134,7 @@ class Subscriber(object):
 
         # print "received data: ", data
         #Z = np.matrix([data.x,data.y,data.z]).getT()
-        Z = np.matrix([aruco_pose.pose.pose.position.x,obj_hypothesis.pose.pose.position.x,
-            aruco_pose.pose.pose.position.y,obj_hypothesis.pose.pose.position.y,
-            aruco_pose.pose.pose.position.z,obj_hypothesis.pose.pose.position.z]).getT()
+        Z = np.matrix([aruco_pose.pose.pose.position.z,obj_hypothesis.pose.pose.position.z]).getT()
 
         if self.kalman.first:
             self.kalman.x = Z
