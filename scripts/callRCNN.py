@@ -21,60 +21,62 @@ import object_detection
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-from geometry_msgs.msg import Twist
+from geometry_msgs.msg import Twist, Point, PointStamped
 
 PARAMETERS_PATH = os.path.join(os.path.dirname(sys.path[0]),'data','Parameters')
 
-class hough_lines:
+class lines:
  
   def __init__(self):
-    self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
-    
+    self.navigation_pub = rospy.Publisher('navigation', PointStamped, queue_size=100)
+    #self.curves_pub = rospy.Publisher('navigation_curves', ByteMultiArray, queue_size=10)
+
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("image",Image,self.callback, queue_size=1, buff_size=2**24)
+    self.image_sub = rospy.Subscriber("image_edges",Image,self.callback, queue_size=1, buff_size=2**24)
+
 
 ###############################################################################
    
   def callback(self,data):
     try:
-      src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+      src_image = self.bridge.imgmsg_to_cv2(data, "mono8")
     except CvBridgeError as e:
       print(e)
 
-    parametersLeftRigth = np.load(PARAMETERS_PATH+'/parametersLeftRigth.npy', allow_pickle=True).item()
-    parametersCurvenonCurve = np.load(PARAMETERS_PATH+'/parametersCurvenonCurve.npy', allow_pickle=True).item()
+    parametersLeftRigth = np.load(PARAMETERS_PATH+'/parameters_dir_esq_completo.npy', allow_pickle=True).item()
+    parametersCurvenonCurve = np.load(PARAMETERS_PATH+'/parameters_reta_curva_completo.npy', allow_pickle=True).item()
 
     num_px = 224
     dim = (224, 224)
     numLines=3 
 
-    #rospy.loginfo(parametersCurvenonCurve)
-
     image = np.array(src_image)
-    img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_AREA).reshape((num_px*num_px*3,1))
+    img_resized = cv2.resize(image, dim, interpolation = cv2.INTER_CUBIC).reshape((num_px*num_px*1,1))
+    #img_reshape = skimage.transform.resize(image, output_shape=(num_px,num_px)).reshape((num_px*num_px*1,1))
 
+    out1 = int(predict_curve(img_resized,parametersCurvenonCurve))
+    out2 = int(predict_curve(img_resized,parametersLeftRigth))
 
-    out = int(predict_curve(img_resized,parametersCurvenonCurve))
+    msg_navigation = PointStamped()
+    msg_navigation.header.stamp = rospy.Time.now()
+    msg_navigation.header.frame_id = "navigation"
+    msg_navigation.point.x = out1
+    msg_navigation.point.y = out2
+    msg_navigation.point.z = 0
 
-    if out == 0:
-        rospy.loginfo("Curva")
-    else:
-        rospy.loginfo("Reta")
-
-
-    cv2.imshow("Image",src_image)
+    #cv2.imshow("Image-RN",src_image)
     #cv2.imshow("Image-edges",edges)
     cv2.waitKey(1)
 
-
     try:
-      self.image_pub.publish(self.bridge.cv2_to_imgmsg(src_image, "bgr8"))
+      self.navigation_pub.publish(msg_navigation)
+      #self.curves_pub.publish(out1)
     except CvBridgeError as e:
       print(e)
-
-
+  
 ###############################################################################
+
 
 def sigmoid(Z):
     """
@@ -531,11 +533,11 @@ def print_mislabeled_images(classes, X, y, p):
 
 
 def main(args):
-
-  ic = hough_lines()
   #-- Name of node
-  rospy.init_node('hough', log_level=rospy.DEBUG)
-
+  rospy.init_node('lines', log_level=rospy.DEBUG)
+  
+  ic = lines()
+  
   try:
       rospy.spin()
   except KeyboardInterrupt:
