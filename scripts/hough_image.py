@@ -133,28 +133,53 @@ class hough_lines:
     # rospy.loginfo("linha 2: %f",math.degrees(lines_vector[1]))
     # rospy.loginfo("linha 3: %f",math.degrees(lines_vector[2]))
 
-    rospy.loginfo("-------------------------")
-    if msg_navigation.point.x == 0:
-        msg_direction_str = "SemCurva"
-    else:
-        rospy.loginfo("Curva")
-        if msg_navigation.point.y == 1:
-            rospy.loginfo("...Esquerda")
-        else:
-            rospy.loginfo("...Direita")
-    rospy.loginfo("-------------------------")
+    # rospy.loginfo("-------------------------")
+    # if out1 == 0:
+    #     rospy.loginfo("Reta")
+    # else:
+    #     rospy.loginfo("Curva")
+    #     if out2 == 1:
+    #         rospy.loginfo("...Esquerda")
+    #     else:
+    #         rospy.loginfo("...Direita")
+    # rospy.loginfo("-------------------------")
 
     nav_drone = Twist()
 
     if lines is not None:
       rospy.loginfo("Navigation!")
-      nav_drone.linear.x = 0.05
-      nav_drone.linear.y = y_correction
-      nav_drone.linear.z = 0
+      if out1 == 0:
+        rospy.loginfo("Reta")
+        nav_drone.linear.x = 0.03
+        nav_drone.linear.y = y_correction
+        nav_drone.linear.z = 0
 
-      nav_drone.angular.x = 0
-      nav_drone.angular.y = 0
-      nav_drone.angular.z = yaw*(np.pi/180)
+        nav_drone.angular.x = 0
+        nav_drone.angular.y = 0
+        nav_drone.angular.z = yaw*(np.pi/180)
+
+      else:
+        rospy.loginfo("Curva")
+        if out2 == 1:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = 2*(np.pi/180)
+            rospy.loginfo("...Esquerda: %f deg/s",nav_drone.angular.z*(180/np.pi))
+
+        else:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = -2*(np.pi/180)
+            rospy.loginfo("...Direita: %f deg/s",nav_drone.angular.z*(180/np.pi))
+
     else:
       rospy.loginfo("Parado!")
       nav_drone.linear.x = 0
@@ -164,6 +189,8 @@ class hough_lines:
       nav_drone.angular.x = 0
       nav_drone.angular.y = 0
       nav_drone.angular.z = 0
+      
+    rospy.loginfo("-------------------------")
 
     try:
       self.nav_hough_lines_pub.publish(nav_drone)
