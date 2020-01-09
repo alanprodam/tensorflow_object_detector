@@ -27,6 +27,10 @@ from geometry_msgs.msg import Twist, PointStamped
 
 out1 = 0
 out2 = 0
+
+moviment1 = 0
+
+list_out = []
 msg_navigation = PointStamped()
 
 class hough_lines:
@@ -56,7 +60,7 @@ class hough_lines:
 ###############################################################################
    
   def callback(self,data):
-    global out1, out2,msg_navigation
+    global out1, out2,msg_navigation, moviment1
 
     numLines=3
     yaw = 0
@@ -123,74 +127,104 @@ class hough_lines:
     # y in the drone of ROS = X in the image
     y_correction = float(mediana - gray.shape[1]/2)/ganho_pid
 
-    rospy.loginfo("half_img: %f",gray.shape[1]/2)
-    rospy.loginfo("mediana: %f",mediana)
-    rospy.loginfo("y_correction: %f",y_correction)
+    # rospy.loginfo("half_img: %f",gray.shape[1]/2)
+    # rospy.loginfo("mediana: %f",mediana)
+    # rospy.loginfo("y_correction: %f",y_correction)
 
-    rospy.loginfo("yaw(depois): %f",yaw)
-    rospy.loginfo("-------------------------")
+    # rospy.loginfo("yaw(depois): %f",yaw)
+    # rospy.loginfo("-------------------------")
 
     # rospy.loginfo("linha 2: %f",math.degrees(lines_vector[1]))
     # rospy.loginfo("linha 3: %f",math.degrees(lines_vector[2]))
 
-    # rospy.loginfo("-------------------------")
-    # if out1 == 0:
+    if len(list_out) < 5:
+        list_out.append(out1)
+        rospy.loginfo('Size of list: %f',len(list_out))
+        rospy.loginfo('****Incomplete List')
+        rospy.loginfo('------------------------------')
+        
+    else:
+        list_out.append(out1)
+        del list_out[0]
+        sum_foward = sum(list_out)
+        rospy.loginfo('Size of list: %f',len(list_out))
+        #rospy.loginfo('Complete list: [%f %f %f %f %f]',list_out[0],list_out[1],list_out[2],list_out[3],list_out[4])
+        rospy.loginfo('Sum List: %f',sum_foward)
+
+        if sum_foward == 0:
+            moviment1 = 0
+            
+        if sum_foward == 5:
+            moviment1 = 1
+
+
+        if moviment1 == 0:
+            rospy.loginfo("Foward!")
+        else: 
+            rospy.loginfo("Curve!")
+
+
+    rospy.loginfo('------------------------------') 
+
+
+
+    if out1 == 0:
+        rospy.loginfo("Sem filtro - Reta")
+    else:
+        rospy.loginfo("Sem filtro - Curva")
+        if out2 == 1:
+            rospy.loginfo("...Esquerda")
+        else:
+            rospy.loginfo("...Direita")
+    rospy.loginfo("-------------------------")
+
+    # nav_drone = Twist()
+
+    # if lines is not None:
+    #   rospy.loginfo("Navigation!")
+    #   if out1 == 0:
     #     rospy.loginfo("Reta")
-    # else:
+    #     nav_drone.linear.x = 0.03
+    #     nav_drone.linear.y = y_correction
+    #     nav_drone.linear.z = 0
+
+    #     nav_drone.angular.x = 0
+    #     nav_drone.angular.y = 0
+    #     nav_drone.angular.z = yaw*(np.pi/180)
+
+    #   else:
     #     rospy.loginfo("Curva")
     #     if out2 == 1:
-    #         rospy.loginfo("...Esquerda")
+    #         nav_drone.linear.x = 0
+    #         nav_drone.linear.y = 0
+    #         nav_drone.linear.z = 0
+
+    #         nav_drone.angular.x = 0
+    #         nav_drone.angular.y = 0
+    #         nav_drone.angular.z = 2*(np.pi/180)
+    #         rospy.loginfo("...Esquerda: %f deg/s",nav_drone.angular.z*(180/np.pi))
+
     #     else:
-    #         rospy.loginfo("...Direita")
+    #         nav_drone.linear.x = 0
+    #         nav_drone.linear.y = 0
+    #         nav_drone.linear.z = 0
+
+    #         nav_drone.angular.x = 0
+    #         nav_drone.angular.y = 0
+    #         nav_drone.angular.z = -2*(np.pi/180)
+    #         rospy.loginfo("...Direita: %f deg/s",nav_drone.angular.z*(180/np.pi))
+
+    # else:
+    #   rospy.loginfo("Parado!")
+    #   nav_drone.linear.x = 0
+    #   nav_drone.linear.y = 0
+    #   nav_drone.linear.z = 0
+
+    #   nav_drone.angular.x = 0
+    #   nav_drone.angular.y = 0
+    #   nav_drone.angular.z = 0
+
     # rospy.loginfo("-------------------------")
-
-    nav_drone = Twist()
-
-    if lines is not None:
-      rospy.loginfo("Navigation!")
-      if out1 == 0:
-        rospy.loginfo("Reta")
-        nav_drone.linear.x = 0.03
-        nav_drone.linear.y = y_correction
-        nav_drone.linear.z = 0
-
-        nav_drone.angular.x = 0
-        nav_drone.angular.y = 0
-        nav_drone.angular.z = yaw*(np.pi/180)
-
-      else:
-        rospy.loginfo("Curva")
-        if out2 == 1:
-            nav_drone.linear.x = 0
-            nav_drone.linear.y = 0
-            nav_drone.linear.z = 0
-
-            nav_drone.angular.x = 0
-            nav_drone.angular.y = 0
-            nav_drone.angular.z = 2*(np.pi/180)
-            rospy.loginfo("...Esquerda: %f deg/s",nav_drone.angular.z*(180/np.pi))
-
-        else:
-            nav_drone.linear.x = 0
-            nav_drone.linear.y = 0
-            nav_drone.linear.z = 0
-
-            nav_drone.angular.x = 0
-            nav_drone.angular.y = 0
-            nav_drone.angular.z = -2*(np.pi/180)
-            rospy.loginfo("...Direita: %f deg/s",nav_drone.angular.z*(180/np.pi))
-
-    else:
-      rospy.loginfo("Parado!")
-      nav_drone.linear.x = 0
-      nav_drone.linear.y = 0
-      nav_drone.linear.z = 0
-
-      nav_drone.angular.x = 0
-      nav_drone.angular.y = 0
-      nav_drone.angular.z = 0
-      
-    rospy.loginfo("-------------------------")
 
     try:
       self.nav_hough_lines_pub.publish(nav_drone)
