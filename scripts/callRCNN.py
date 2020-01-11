@@ -33,7 +33,7 @@ class lines:
 
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("image_edges",Image,self.callback, queue_size=1, buff_size=2**24)
+    self.image_sub = rospy.Subscriber("image_edges",Image,self.callback, queue_size=100)
 
 
 ###############################################################################

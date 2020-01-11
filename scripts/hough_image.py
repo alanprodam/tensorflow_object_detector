@@ -23,14 +23,19 @@ import object_detection
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-from geometry_msgs.msg import Twist, PointStamped
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point, Pose, PointStamped, Quaternion, Twist, Vector3
 
 out1 = 0
 out2 = 0
+z_position = 0
 
-moviment1 = 0
+moviment = 0
+rotation = 0
 
-list_out = []
+list_moviment = []
+list_rotation = []
+
 msg_navigation = PointStamped()
 
 class hough_lines:
@@ -42,12 +47,20 @@ class hough_lines:
 
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback, queue_size=1, buff_size=2**24)
+    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback, queue_size=100)
     self.navigation_sub = rospy.Subscriber('navigation', PointStamped, self.callback_navigation, queue_size=100)
-    #self.curves_sub = rospy.Subscriber('navigation_curves', ByteMultiArray, self.callback_curves, queue_size=10)
+    # /bebop/odom
+    self.odm_sub = rospy.Subscriber('/bebop/odom', Odometry, self.callback_pose, queue_size=100)
+  
+  def callback_pose(self,data):
+    global z_position
+
+    msg_odom = Odometry()
+    msg_odom = data
+    z_position = msg_odom.pose.pose.position.z
 
   def callback_navigation(self,data):
-    global out1, out2, msg_navigation
+    global out1, out2
 
     msg_navigation = PointStamped()
     msg_navigation = data
@@ -60,7 +73,7 @@ class hough_lines:
 ###############################################################################
    
   def callback(self,data):
-    global out1, out2,msg_navigation, moviment1
+    global out1, out2, msg_navigation, moviment, rotation, list_rotation, list_moviment
 
     numLines=3
     yaw = 0
@@ -78,7 +91,7 @@ class hough_lines:
 
     gray = cv2.cvtColor(resize, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red
 
-    edges = cv2.Canny(gray, 350, 400, apertureSize=3, L2gradient=True) #Deteccao de bordas ... min: 350 / max: 400 
+    edges = cv2.Canny(gray, 300, 350, apertureSize=3, L2gradient=True) #Deteccao de bordas ... min: 350 / max: 400 
 
     lines = cv2.HoughLines(edges, numLines, np.pi/90, 100)
 
@@ -137,107 +150,152 @@ class hough_lines:
     # rospy.loginfo("linha 2: %f",math.degrees(lines_vector[1]))
     # rospy.loginfo("linha 3: %f",math.degrees(lines_vector[2]))
 
-    if len(list_out) < 5:
-        list_out.append(out1)
-        rospy.loginfo('Size of list: %f',len(list_out))
-        rospy.loginfo('****Incomplete List')
-        rospy.loginfo('------------------------------')
+    # Filter moviment
+    if len(list_moviment) < 5:
+        list_moviment.append(out1)
+        # rospy.loginfo('Size of list: %f',len(list_moviment))
+        # rospy.loginfo('****Incomplete List Moviment')
+        # rospy.loginfo('------------------------------')
         
     else:
-        list_out.append(out1)
-        del list_out[0]
-        sum_foward = sum(list_out)
-        rospy.loginfo('Size of list: %f',len(list_out))
-        #rospy.loginfo('Complete list: [%f %f %f %f %f]',list_out[0],list_out[1],list_out[2],list_out[3],list_out[4])
-        rospy.loginfo('Sum List: %f',sum_foward)
+        list_moviment.append(out1)
+        del list_moviment[0]
+        sum_foward = sum(list_moviment)
+        # rospy.loginfo('Size of list Moviment: %f',len(list_moviment))
+        # rospy.loginfo('Sum List Moviment: %f',sum_foward)
 
         if sum_foward == 0:
-            moviment1 = 0
+            moviment = 0
+            list_rotation = []
+            ###### LIMPAR vetor list rotation
             
         if sum_foward == 5:
-            moviment1 = 1
+            moviment = 1
 
 
-        if moviment1 == 0:
-            rospy.loginfo("Foward!")
-        else: 
-            rospy.loginfo("Curve!")
+        # if moviment == 0:
+        #     rospy.loginfo("Foward! (Filter)")
+        # else: 
+        #     rospy.loginfo("Curve! (Filter)")
+        #     rospy.loginfo('------------------------------')
 
-
-    rospy.loginfo('------------------------------') 
-
-
-
-    if out1 == 0:
-        rospy.loginfo("Sem filtro - Reta")
+    # Filter rotation
+    if len(list_rotation) < 5:
+        list_rotation.append(out2)
+        # rospy.loginfo('Size of list Rotation: %f',len(list_rotation))
+        # rospy.loginfo('****Incomplete List Rotation')
+        # rospy.loginfo('------------------------------')
+        
     else:
-        rospy.loginfo("Sem filtro - Curva")
-        if out2 == 1:
-            rospy.loginfo("...Esquerda")
-        else:
-            rospy.loginfo("...Direita")
-    rospy.loginfo("-------------------------")
+        list_rotation.append(out2)
+        del list_rotation[0]
+        sum_rotation = sum(list_rotation)
+        # rospy.loginfo('Size of list Rotation: %f',len(list_rotation))
+        #rospy.loginfo('Complete list: [%f %f %f %f %f]',list_out[0],list_out[1],list_out[2],list_out[3],list_out[4])
+        # rospy.loginfo('Sum List Rotation: %f',sum_rotation)
 
-    # nav_drone = Twist()
+        if sum_rotation == 0:
+            rotation = 0
+            
+        if sum_rotation == 5:
+            rotation = 1
 
-    # if lines is not None:
-    #   rospy.loginfo("Navigation!")
-    #   if out1 == 0:
-    #     rospy.loginfo("Reta")
-    #     nav_drone.linear.x = 0.03
-    #     nav_drone.linear.y = y_correction
-    #     nav_drone.linear.z = 0
 
-    #     nav_drone.angular.x = 0
-    #     nav_drone.angular.y = 0
-    #     nav_drone.angular.z = yaw*(np.pi/180)
+        # if rotation == 0:
+        #     rospy.loginfo("Curve Right! (Filter)")
+        # else: 
+        #     rospy.loginfo("Curve Left! (Filter)")
+        #     rospy.loginfo('------------------------------')
 
-    #   else:
-    #     rospy.loginfo("Curva")
-    #     if out2 == 1:
-    #         nav_drone.linear.x = 0
-    #         nav_drone.linear.y = 0
-    #         nav_drone.linear.z = 0
 
-    #         nav_drone.angular.x = 0
-    #         nav_drone.angular.y = 0
-    #         nav_drone.angular.z = 2*(np.pi/180)
-    #         rospy.loginfo("...Esquerda: %f deg/s",nav_drone.angular.z*(180/np.pi))
-
-    #     else:
-    #         nav_drone.linear.x = 0
-    #         nav_drone.linear.y = 0
-    #         nav_drone.linear.z = 0
-
-    #         nav_drone.angular.x = 0
-    #         nav_drone.angular.y = 0
-    #         nav_drone.angular.z = -2*(np.pi/180)
-    #         rospy.loginfo("...Direita: %f deg/s",nav_drone.angular.z*(180/np.pi))
-
+    # if out1 == 0:
+    #     rospy.loginfo("Sem filtro - Reta")
     # else:
-    #   rospy.loginfo("Parado!")
-    #   nav_drone.linear.x = 0
-    #   nav_drone.linear.y = 0
-    #   nav_drone.linear.z = 0
-
-    #   nav_drone.angular.x = 0
-    #   nav_drone.angular.y = 0
-    #   nav_drone.angular.z = 0
-
+    #     rospy.loginfo("Sem filtro - Curva")
+    #     if out2 == 1:
+    #         rospy.loginfo("...Esquerda")
+    #     else:
+    #         rospy.loginfo("...Direita")
     # rospy.loginfo("-------------------------")
+
+    #rospy.loginfo("Position Z %f", z_position)
+    ganho_pid_altura = 5
+    altura_desejada = 2.5
+    # y in the drone of ROS = X in the image
+    erro = float(2.5 - z_position)
+    if erro > abs(0.2):
+        z_correction = float(2.5 - z_position)/ganho_pid_altura
+        #rospy.loginfo("Correction Z %f", z_correction)
+    else:
+        z_correction = 0
+        #rospy.loginfo("Correction Z %f", z_correction)
+
+    nav_drone = Twist()
+
+    nav_drone.linear.z = z_correction
+
+    if lines is not None:
+      rospy.loginfo("Navigation!")
+      if moviment == 0:
+        rospy.loginfo("Reta (Filter)")
+        nav_drone.linear.x = 0.05
+        nav_drone.linear.y = y_correction
+        nav_drone.linear.z = 0
+
+        nav_drone.angular.x = 0
+        nav_drone.angular.y = 0
+        nav_drone.angular.z = yaw*(np.pi/180)
+        rospy.loginfo("yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+        rospy.loginfo("-------------------------")
+
+      else:
+        rospy.loginfo("Curva (Filter)")
+        if rotation == 1:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = 0.5*(np.pi/180)
+            rospy.loginfo("...Left-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+            rospy.loginfo("-------------------------")
+
+        else:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = -0.5*(np.pi/180)
+            rospy.loginfo("...Right-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+            rospy.loginfo("-------------------------")
+
+    else:
+      rospy.loginfo("Parado!")
+      nav_drone.linear.x = 0
+      nav_drone.linear.y = 0
+      nav_drone.linear.z = 0
+
+      nav_drone.angular.x = 0
+      nav_drone.angular.y = 0
+      nav_drone.angular.z = 0
+
+    rospy.loginfo("-------------------------")
 
     try:
       self.nav_hough_lines_pub.publish(nav_drone)
     except:
       rospy.loginfo('No publish!')
 
-    cv2.imshow("Image-lines",resize)
-    cv2.imshow("Image-edges",edges)
+    #cv2.imshow("Image-lines",resize)
+    #cv2.imshow("Image-edges",edges)
     cv2.waitKey(1)
 
 
     try:
-      self.img_lines_pub.publish(self.bridge.cv2_to_imgmsg(resize, "bgr8"))
+      #self.img_lines_pub.publish(self.bridge.cv2_to_imgmsg(resize, "bgr8"))
       self.img_edges_pub.publish(self.bridge.cv2_to_imgmsg(edges, "mono8"))
     except CvBridgeError as e:
       print(e)

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
-import os, sys
+import os
+import sys, time, math
+import rospy
 import cv2
 import numpy as np
 try:
@@ -21,9 +23,301 @@ import object_detection
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-# numpy and scipy
-import matplotlib.pyplot as plt
-import h5py
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Point, Pose, PointStamped, Quaternion, Twist, Vector3
+
+PARAMETERS_PATH = os.path.join(os.path.dirname(sys.path[0]),'data','Parameters')
+
+z_position = 0
+
+moviment = 0
+rotation = 0
+
+list_moviment = []
+list_rotation = []
+
+class lines:
+ 
+  def __init__(self):
+    self.navigation_pub = rospy.Publisher('navigation', Twist, queue_size=100)
+
+    #-- Create a supscriber from topic "image_raw"
+    self.bridge = CvBridge()
+    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback, queue_size=100)
+    # /bebop/odom
+    self.odm_sub = rospy.Subscriber('/bebop/odom', Odometry, self.callback_pose, queue_size=100)
+
+  def callback_pose(self,data):
+    global z_position
+
+    msg_odom = Odometry()
+    msg_odom = data
+    z_position = msg_odom.pose.pose.position.z
+
+
+###############################################################################
+   
+  def callback(self,data):
+    global moviment, rotation, list_rotation, list_moviment
+
+    yaw = 0
+    x = 0
+    med_theta = 0
+    lines_vector = [0, 0, 0] 
+
+    parametersLeftRigth = np.load(PARAMETERS_PATH+'/parameters_dir_esq_completo.npy', allow_pickle=True).item()
+    parametersCurvenonCurve = np.load(PARAMETERS_PATH+'/parameters_reta_curva_completo.npy', allow_pickle=True).item()
+
+    num_px = 224
+    dim = (224, 224)
+    numLines=3
+
+    try:
+      src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+    except CvBridgeError as e:
+      print(e)
+
+    img_array = np.array(src_image)
+    img_resize = cv2.resize(img_array, (224, 224), interpolation=cv2.INTER_CUBIC)
+    img_gray = cv2.cvtColor(img_resize, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red
+    img_edges = cv2.Canny(img_gray, 300, 350, apertureSize=3, L2gradient=True) #Deteccao de bordas ... min: 350 / max: 400 
+    img_reshape = cv2.resize(img_edges, dim, interpolation = cv2.INTER_CUBIC).reshape((num_px*num_px*1,1))
+    #img_reshape = skimage.transform.resize(image, output_shape=(num_px,num_px)).reshape((num_px*num_px*1,1))
+
+    out1 = int(predict_curve(img_reshape,parametersCurvenonCurve))
+    out2 = int(predict_curve(img_reshape,parametersLeftRigth))
+
+    #-- Convert in gray scale\n",
+    resize = cv2.resize(src_image, (224, 224), interpolation=cv2.INTER_CUBIC)
+
+    gray = cv2.cvtColor(src_image, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red
+
+    edges = cv2.Canny(gray, 300, 350, apertureSize=3, L2gradient=True) #Deteccao de bordas ... min: 350 / max: 400 
+
+    lines = cv2.HoughLines(img_edges, numLines, np.pi/90, 100)
+
+    if lines is not None: 
+            if lines.shape[0] >= numLines:
+                x = 0
+                med_theta = 0
+                for i in range(0,numLines):
+                    for rho, theta in lines[i]:
+                        a = np.cos(theta)
+                        b = np.sin(theta)
+                        x0 = a*rho
+                        y0 = b*rho
+                        x1 = int(x0 + 1000*(-b))
+                        y1 = int(y0 + 1000*(a))
+                        x2 = int(x0 - 1000*(-b))
+                        y2 = int(y0 - 1000*(a))
+   
+                        cv2.line(resize, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                        cv2.line(edges, (x1, y1), (x2, y2), (0, 0, 255), 2)
+                        
+                        med_theta = med_theta + (theta/numLines)
+                        lines_vector[i] = theta
+                        x = x+x1+x2
+
+    mediana = int(x/(numLines*2))
+
+    med_theta = math.degrees(med_theta)
+
+    # zerar erro de leitura Yaw
+    if abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[1]) ) < 60 and abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[2]) ) < 60 and abs( math.degrees(lines_vector[1]) - math.degrees(lines_vector[2]) ) < 60:
+      if med_theta > (90):
+        yaw = (180-med_theta)
+      else:
+        yaw = -med_theta
+
+    # rospy.loginfo("linha 1: %f",math.degrees(lines_vector[0]))
+    # rospy.loginfo("linha 2: %f",math.degrees(lines_vector[1]))
+    # rospy.loginfo("linha 3: %f",math.degrees(lines_vector[2]))
+
+    # rospy.loginfo("Media Theta: %f",med_theta)
+    # rospy.loginfo("Valor x: %f",x)
+    # rospy.loginfo("-------------------------")
+
+    ganho_pid = 1000
+    # y in the drone of ROS = X in the image
+    y_correction = float(mediana - gray.shape[1]/2)/ganho_pid
+
+    # rospy.loginfo("half_img: %f",gray.shape[1]/2)
+    # rospy.loginfo("mediana: %f",mediana)
+    # rospy.loginfo("y_correction: %f",y_correction)
+
+    # rospy.loginfo("yaw(depois): %f",yaw)
+    # rospy.loginfo("-------------------------")
+
+    # rospy.loginfo("linha 2: %f",math.degrees(lines_vector[1]))
+    # rospy.loginfo("linha 3: %f",math.degrees(lines_vector[2]))
+
+    # Filter moviment
+    if len(list_moviment) < 5:
+        list_moviment.append(out1)
+        # rospy.loginfo('Size of list: %f',len(list_moviment))
+        # rospy.loginfo('****Incomplete List Moviment')
+        # rospy.loginfo('------------------------------')
+        
+    else:
+        list_moviment.append(out1)
+        del list_moviment[0]
+        sum_foward = sum(list_moviment)
+        # rospy.loginfo('Size of list Moviment: %f',len(list_moviment))
+        # rospy.loginfo('Sum List Moviment: %f',sum_foward)
+
+        if sum_foward == 0:
+            moviment = 0
+            list_rotation = []
+            ###### LIMPAR vetor list rotation
+            
+        if sum_foward == 5:
+            moviment = 1
+
+
+        # if moviment == 0:
+        #     rospy.loginfo("Foward! (Filter)")
+        # else: 
+        #     rospy.loginfo("Curve! (Filter)")
+        #     rospy.loginfo('------------------------------')
+
+    # Filter rotation
+    if len(list_rotation) < 5:
+        list_rotation.append(out2)
+        # rospy.loginfo('Size of list Rotation: %f',len(list_rotation))
+        # rospy.loginfo('****Incomplete List Rotation')
+        # rospy.loginfo('------------------------------')
+        
+    else:
+        list_rotation.append(out2)
+        del list_rotation[0]
+        sum_rotation = sum(list_rotation)
+        # rospy.loginfo('Size of list Rotation: %f',len(list_rotation))
+        #rospy.loginfo('Complete list: [%f %f %f %f %f]',list_out[0],list_out[1],list_out[2],list_out[3],list_out[4])
+        # rospy.loginfo('Sum List Rotation: %f',sum_rotation)
+
+        if sum_rotation == 0:
+            rotation = 0
+            
+        if sum_rotation == 5:
+            rotation = 1
+
+
+        # if rotation == 0:
+        #     rospy.loginfo("Curve Right! (Filter)")
+        # else: 
+        #     rospy.loginfo("Curve Left! (Filter)")
+        #     rospy.loginfo('------------------------------')
+
+
+    # if out1 == 0:
+    #     rospy.loginfo("Sem filtro - Reta")
+    # else:
+    #     rospy.loginfo("Sem filtro - Curva")
+    #     if out2 == 1:
+    #         rospy.loginfo("...Esquerda")
+    #     else:
+    #         rospy.loginfo("...Direita")
+    # rospy.loginfo("-------------------------")
+
+    #rospy.loginfo("Position Z %f", z_position)
+    ganho_pid_altura = 5
+    altura_desejada = 2.5
+    # y in the drone of ROS = X in the image
+    erro = float(2.5 - z_position)
+    if erro > abs(0.2):
+        z_correction = float(2.5 - z_position)/ganho_pid_altura
+        #rospy.loginfo("Correction Z %f", z_correction)
+    else:
+        z_correction = 0
+        #rospy.loginfo("Correction Z %f", z_correction)
+
+    nav_drone = Twist()
+
+    nav_drone.linear.z = z_correction
+
+    if lines is not None:
+      rospy.loginfo("Navigation!")
+      if moviment == 0:
+        rospy.loginfo("Reta (Filter)")
+        nav_drone.linear.x = 0.05
+        nav_drone.linear.y = y_correction
+        nav_drone.linear.z = 0
+
+        nav_drone.angular.x = 0
+        nav_drone.angular.y = 0
+        nav_drone.angular.z = yaw*(np.pi/180)
+        rospy.loginfo("yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+        rospy.loginfo("-------------------------")
+
+      else:
+        rospy.loginfo("Curva (Filter)")
+        if rotation == 1:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = 0.5*(np.pi/180)
+            rospy.loginfo("...Left-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+            rospy.loginfo("-------------------------")
+
+        else:
+            nav_drone.linear.x = 0
+            nav_drone.linear.y = 0
+            nav_drone.linear.z = 0
+
+            nav_drone.angular.x = 0
+            nav_drone.angular.y = 0
+            nav_drone.angular.z = -0.5*(np.pi/180)
+            rospy.loginfo("...Right-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+            rospy.loginfo("-------------------------")
+
+    else:
+      rospy.loginfo("Parado!")
+      nav_drone.linear.x = 0
+      nav_drone.linear.y = 0
+      nav_drone.linear.z = 0
+
+      nav_drone.angular.x = 0
+      nav_drone.angular.y = 0
+      nav_drone.angular.z = 0
+
+    rospy.loginfo("-------------------------")
+
+    try:
+      self.navigation_pub.publish(nav_drone)
+    except:
+      rospy.loginfo('No publish!')
+
+    cv2.imshow("Image-lines",resize)
+    #cv2.imshow("Image-edges",edges)
+    cv2.waitKey(1)
+
+
+    ###############################################################################################
+
+    
+    
+
+    # msg_navigation = PointStamped()
+    # msg_navigation.header.stamp = rospy.Time.now()
+    # msg_navigation.header.frame_id = "navigation"
+    # msg_navigation.point.x = out1
+    # msg_navigation.point.y = out2
+    # msg_navigation.point.z = 0
+
+    # #cv2.imshow("Image-RN",src_image)
+    # #cv2.imshow("Image-edges",edges)
+    # cv2.waitKey(1)
+
+    # try:
+    #   self.navigation_pub.publish(msg_navigation)
+    #   #self.curves_pub.publish(out1)
+    # except CvBridgeError as e:
+    #   print(e)
+  
+###############################################################################
 
 
 def sigmoid(Z):
@@ -42,6 +336,7 @@ def sigmoid(Z):
     cache = Z
     
     return A, cache
+
 
 def relu(Z):
     """
@@ -85,6 +380,7 @@ def relu_backward(dA, cache):
     
     return dZ
 
+
 def sigmoid_backward(dA, cache):
     """
     Implement the backward propagation for a single SIGMOID unit.
@@ -105,42 +401,6 @@ def sigmoid_backward(dA, cache):
     assert (dZ.shape == Z.shape)
     
     return dZ
-
-
-def load_data():
-    train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
-    train_set_x_orig = np.array(train_dataset["train_set_x"][:]) # your train set features
-    train_set_y_orig = np.array(train_dataset["train_set_y"][:]) # your train set labels
-
-    test_dataset = h5py.File('datasets/test_catvnoncat.h5', "r")
-    test_set_x_orig = np.array(test_dataset["test_set_x"][:]) # your test set features
-    test_set_y_orig = np.array(test_dataset["test_set_y"][:]) # your test set labels
-
-    classes = np.array(test_dataset["list_classes"][:]) # the list of classes
-    
-    train_set_y_orig = train_set_y_orig.reshape((1, train_set_y_orig.shape[0]))
-    test_set_y_orig = test_set_y_orig.reshape((1, test_set_y_orig.shape[0]))
-    
-    return train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig, classes
-
-def load_data2():
-    hdf5_path = '/home/victor/Dropbox/Doutorado/Experimento Real/CurveLine_HDF5/datasetcurvenoncurve.hdf5'
-    #hdf5_path = '/home/victor/Dropbox/Doutorado/Experimento Real/CurveLine_HDF5/datasetcurve.hdf5'
-    #hdf5_path = '/home/victor/Dropbox/Doutorado/V-REP/Python/CurveLineTrasmition/datasetcurvenoncurve9meters.hdf5'
-    #hdf5_path = '/home/victor/Dropbox/Doutorado/V-REP/Python/CurveLineTrasmition/datasetcurve9meters.hdf5'
-    
-    hdf5_file = h5py.File(hdf5_path, "r")
-    
-    train_set_x_orig = np.array(hdf5_file["train_img"][:]) # your train set features
-    train_set_y_orig = np.array(hdf5_file["train_labels"][:]) # your train set labels
-
-    test_set_x_orig = np.array(hdf5_file["test_img"][:]) # your test set features
-    test_set_y_orig = np.array(hdf5_file["test_labels"][:]) # your test set labels
-    
-    train_set_y_orig = train_set_y_orig.reshape((1, train_set_y_orig.shape[0]))
-    test_set_y_orig = test_set_y_orig.reshape((1, test_set_y_orig.shape[0]))
-    
-    return train_set_x_orig, train_set_y_orig, test_set_x_orig, test_set_y_orig
 
 
 def initialize_parameters(n_x, n_h, n_y):
@@ -217,7 +477,13 @@ def linear_forward(A, W, b):
     cache -- a python dictionary containing "A", "W" and "b" ; stored for computing the backward pass efficiently
     """
     
+    # rospy.loginfo("******DEBUG******")
+    # print("A-Shape: ",A.shape)
+    # print("W-Shape: ",W.shape)
+    # print("b-Shape: ",b.shape)
+
     Z = W.dot(A) + b
+    #Z = np.dot(A,W) + b
     
     assert(Z.shape == (W.shape[0], A.shape[1]))
     cache = (A, W, b)
@@ -473,6 +739,7 @@ def predict_curve(X, parameters):
     m = X.shape[1]
     n = len(parameters) // 2 # number of layers in the neural network
     p = np.zeros((1,m))
+
     
     # Forward propagation
     probas, caches = L_model_forward(X, parameters)
@@ -505,3 +772,22 @@ def print_mislabeled_images(classes, X, y, p):
         plt.imshow(X[:,index].reshape(64,64,3), interpolation='nearest')
         plt.axis('off')
         plt.title("Prediction: " + classes[int(p[0,index])].decode("utf-8") + " \n Class: " + classes[y[0,index]].decode("utf-8"))
+
+
+def main(args):
+  #-- Name of node
+  rospy.init_node('lines', log_level=rospy.DEBUG)
+  
+  ic = lines()
+  
+  try:
+      rospy.spin()
+  except KeyboardInterrupt:
+      print("Shutting down")
+
+  cv2.destroyAllWindows()
+
+###############################################################################
+   
+if __name__ == '__main__':
+  main(sys.argv)
