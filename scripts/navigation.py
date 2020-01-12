@@ -279,9 +279,9 @@ class lines:
     except:
       rospy.loginfo('No publish!')
 
-    cv2.imshow("Image-lines",resize)
+    #cv2.imshow("Image-lines",resize)
     #cv2.imshow("Image-edges",edges)
-    cv2.waitKey(1)
+    #cv2.waitKey(1)
 
 
 
