@@ -108,6 +108,7 @@ class aruco_odom:
   def callbackImage(self,data):
 
     #global first_time
+    ids = []
 
     try:
       src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -131,11 +132,12 @@ class aruco_odom:
                                                   cameraMatrix=camera_matrix,
                                                   distCoeff=camera_distortion)
 
-    #print("ids:", int(ids))
-    #print("ids[0]:", ids[0])
+    #rospy.loginfo("ids[]: %f", len(ids[0]))
     #int(ids) == id_to_find:
 
-    if (int(ids[0]) != None and int(ids[0]) == id_to_find):
+    if ids[0] != None and ids[0] == id_to_find:
+
+    #if (int(ids[0]) != None and int(ids[0]) == id_to_find):
       #-- ret= [rvec,tvec, ?]
       #-- array of rotation and position of each marker in camera frame
       #-- rvec = [[rvec_1, [rvec2], ...]]  attitude of the marker respect to camera frame
