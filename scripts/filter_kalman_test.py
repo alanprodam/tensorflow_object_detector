@@ -74,38 +74,17 @@ class Subscriber(object):
 
         r = rospy.Rate(10.0)
         while not rospy.is_shutdown():
+
             Zneural = np.matrix([33,5,10]).getT()
             Zaruco = np.matrix([22,3,8]).getT()
 
             self.hybridFilter(Zneural,Zaruco)
             r.sleep()
-        #rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
-        #rospy.Subscriber("bebop/pose_aruco",Odometry, self.callbackPoseAruco)
         
-
         try: 
             rospy.spin()
         except rospy.ROSInterruptException:
             print("Shutting down")
-
-    # def callbackPoseRCNN(self, data):
-    #     global obj, obj_hypothesis
-    #     # recive data
-    #     objArray = Detection2DArray()
-    #     obj=Detection2D()
-    #     obj_hypothesis= ObjectHypothesisWithPose()
-
-    #     # rcnn_pose 
-    #     objArray = data
-    #     obj = objArray.detections
-    #     # rospy.loginfo(" lenth obj: %f", len(obj))
-        
-    #     if len(obj) != 0:
-    #         obj_hypothesis.id = obj[0].results[0].id
-    #         obj_hypothesis.score = obj[0].results[0].score
-    #         obj_hypothesis.pose.pose.position.x = obj[0].results[0].pose.pose.position.x
-    #         obj_hypothesis.pose.pose.position.y = obj[0].results[0].pose.pose.position.y
-    #         obj_hypothesis.pose.pose.position.z = obj[0].results[0].pose.pose.position.z
 
     def hybridFilter(self, d1, d2):
 
@@ -122,47 +101,28 @@ class Subscriber(object):
         vec = Vector3()
         vec.x = self.kalman.x[0]
         vec.y = self.kalman.x[1]
-        #vec.z = self.kalman.x[2]
+        vec.z = self.kalman.x[2]
 
         rospy.loginfo("kalman.x[0] : %f", vec.x)
         rospy.loginfo("kalman.x[1] : %f", vec.y)
+        rospy.loginfo("kalman.x[2] : %f", vec.z)
+        rospy.loginfo("------------------------")
+
+
+        self.kalman.update(Z2)
+        self.kalman.predict()
+
+        vec = Vector3()
+        vec.x = self.kalman.x[0]
+        vec.y = self.kalman.x[1]
+        vec.z = self.kalman.x[2]
+
+        rospy.loginfo("kalman.x[0] : %f", vec.x)
+        rospy.loginfo("kalman.x[1] : %f", vec.y)
+        rospy.loginfo("kalman.x[2] : %f", vec.z)
+
 
         self.pub_hibrid.publish(vec)
-
-
-    # def callbackPoseAruco(self, data):
-    #     # recive data
-    #     aruco_pose = data
-    #     # rospy.loginfo("--------------------------------")
-    #     # rospy.loginfo("aruco_pose.x (m): %f", aruco_pose.pose.pose.position.x)
-    #     # rospy.loginfo("aruco_pose.y (m): %f", aruco_pose.pose.pose.position.y)
-    #     # rospy.loginfo("aruco_pose.z (m): %f", aruco_pose.pose.pose.position.z)
-    #     # rospy.loginfo("--------------------------------")
-    #     # rospy.loginfo("rcnn_pose.x (m): %f", obj_hypothesis.pose.pose.position.x)
-    #     # rospy.loginfo("rcnn_pose.y (m): %f", obj_hypothesis.pose.pose.position.y)
-    #     # rospy.loginfo("rcnn_pose.z (m): %f", obj_hypothesis.pose.pose.position.z)
-
-    #     # print "received data: ", data
-    #     #Z = np.matrix([data.x,data.y,data.z]).getT()
-    #     #Z = np.matrix([aruco_pose.pose.pose.position.z,obj_hypothesis.pose.pose.position.z]).getT()
-    #     Z = np.matrix([33,5,10]).getT()
-
-    #     if self.kalman.first:
-    #         self.kalman.x = Z
-    #         self.kalman.first = False
-
-    #     self.kalman.update(Z)
-    #     self.kalman.predict()
-
-    #     vec = Vector3()
-    #     vec.x = self.kalman.x[0]
-    #     vec.y = self.kalman.x[1]
-    #     #vec.z = self.kalman.x[2]
-
-    #     rospy.loginfo("kalman.x[0] : %f", vec.x)
-    #     rospy.loginfo("kalman.x[1] : %f", vec.y)
-
-    #     self.pub_hibrid.publish(vec)
 
 if __name__ == '__main__':
     subscriber = Subscriber()
