@@ -103,23 +103,23 @@ class Subscriber(object):
         vec.y = self.kalman.x[1]
         vec.z = self.kalman.x[2]
 
-        rospy.loginfo("kalman.x[0] : %f", vec.x)
-        rospy.loginfo("kalman.x[1] : %f", vec.y)
-        rospy.loginfo("kalman.x[2] : %f", vec.z)
+        rospy.loginfo("kalman.sensor[1].x : %f", vec.x)
+        rospy.loginfo("kalman.sensor[1].y : %f", vec.y)
+        rospy.loginfo("kalman.sensor[1].z : %f", vec.z)
         rospy.loginfo("------------------------")
 
 
         self.kalman.update(Z2)
         self.kalman.predict()
 
-        vec = Vector3()
         vec.x = self.kalman.x[0]
         vec.y = self.kalman.x[1]
         vec.z = self.kalman.x[2]
 
-        rospy.loginfo("kalman.x[0] : %f", vec.x)
-        rospy.loginfo("kalman.x[1] : %f", vec.y)
-        rospy.loginfo("kalman.x[2] : %f", vec.z)
+        rospy.loginfo("kalman.sensor[2].z : %f", vec.x)
+        rospy.loginfo("kalman.sensor[2].y : %f", vec.y)
+        rospy.loginfo("kalman.sensor[2].z : %f", vec.z)
+        rospy.loginfo("------------------------")
 
 
         self.pub_hibrid.publish(vec)
