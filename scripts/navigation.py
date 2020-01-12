@@ -90,7 +90,7 @@ class lines:
     #-- Convert in gray scale\n",
     resize = cv2.resize(src_image, (224, 224), interpolation=cv2.INTER_CUBIC)
 
-    gray = cv2.cvtColor(src_image, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red
+    gray = cv2.cvtColor(resize, cv2.COLOR_BGR2GRAY) #-- remember, OpenCV stores color images in Blue, Green, Red
 
     edges = cv2.Canny(gray, 300, 350, apertureSize=3, L2gradient=True) #Deteccao de bordas ... min: 350 / max: 400 
 
@@ -173,7 +173,6 @@ class lines:
         if sum_foward == 5:
             moviment = 1
 
-
         # if moviment == 0:
         #     rospy.loginfo("Foward! (Filter)")
         # else: 
@@ -201,7 +200,6 @@ class lines:
         if sum_rotation == 5:
             rotation = 1
 
-
         # if rotation == 0:
         #     rospy.loginfo("Curve Right! (Filter)")
         # else: 
@@ -209,15 +207,7 @@ class lines:
         #     rospy.loginfo('------------------------------')
 
 
-    # if out1 == 0:
-    #     rospy.loginfo("Sem filtro - Reta")
-    # else:
-    #     rospy.loginfo("Sem filtro - Curva")
-    #     if out2 == 1:
-    #         rospy.loginfo("...Esquerda")
-    #     else:
-    #         rospy.loginfo("...Direita")
-    # rospy.loginfo("-------------------------")
+
 
     #rospy.loginfo("Position Z %f", z_position)
     ganho_pid_altura = 5
@@ -282,8 +272,7 @@ class lines:
       nav_drone.angular.x = 0
       nav_drone.angular.y = 0
       nav_drone.angular.z = 0
-
-    rospy.loginfo("-------------------------")
+      rospy.loginfo("-------------------------")
 
     try:
       self.navigation_pub.publish(nav_drone)
@@ -295,25 +284,10 @@ class lines:
     cv2.waitKey(1)
 
 
-    ###############################################################################################
-
-    
-    
-
-    # msg_navigation = PointStamped()
-    # msg_navigation.header.stamp = rospy.Time.now()
-    # msg_navigation.header.frame_id = "navigation"
-    # msg_navigation.point.x = out1
-    # msg_navigation.point.y = out2
-    # msg_navigation.point.z = 0
-
-    # #cv2.imshow("Image-RN",src_image)
-    # #cv2.imshow("Image-edges",edges)
-    # cv2.waitKey(1)
 
     # try:
-    #   self.navigation_pub.publish(msg_navigation)
-    #   #self.curves_pub.publish(out1)
+    #   self.img_filter_pub.publish(resize)
+    #   
     # except CvBridgeError as e:
     #   print(e)
   
