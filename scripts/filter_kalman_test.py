@@ -50,10 +50,10 @@ class Kalman(object):
         '''Z: new sensor values as numpy matrix'''
 
         w = Z - self.H * self.x
-        S = self.H * self.P * self.H.getT() + self.R
-        K = self.P * self.H.getT() * S.getI()
-        self.x = self.x + K * w
-        self.P = (self.I - K * self.H) * self.P
+        #S = self.H * self.P * self.H.getT() + self.R
+        #K = self.P * self.H.getT() * S.getI()
+        #self.x = self.x + K * w
+        #self.P = (self.I - K * self.H) * self.P
 
     def predict(self):
         self.x = self.F * self.x + self.u
@@ -65,17 +65,17 @@ class Subscriber(object):
         super(Subscriber, self).__init__()
         rospy.init_node('filter_node', anonymous=True, log_level=rospy.DEBUG)
 
-        self.kalman = Kalman(n_states = 3, n_sensors = 3)
+        self.kalman = Kalman(n_states = 6, n_sensors = 2)
         self.kalman.H = np.matrix(np.identity(self.kalman.n_states))
         self.kalman.P *= 10
-        self.kalman.R *= 0.01
+        self.kalman.R *= 0.02
 
         self.pub_hibrid = rospy.Publisher('kalman/hibrid', Vector3)
 
         r = rospy.Rate(10.0)
         while not rospy.is_shutdown():
 
-            Zneural = np.matrix([33,5,10]).getT()
+            Zneural = np.matrix([33,5,10,22,3,8]).getT()
             Zaruco = np.matrix([22,3,8]).getT()
 
             self.hybridFilter(Zneural,Zaruco)
@@ -90,13 +90,21 @@ class Subscriber(object):
 
         Z1 = d1
         Z2 = d2
+        
+        # Z = np.matrix(np.zeros(shape=(6, 1)))
+        # Z[0] = Zneural[0]
+        # Z[1] = Zneural[1]
+        # Z[2] = Zneural[2]
+        # Z[3] = Zaruco[0]
+        # Z[4] = Zaruco[1]
+        # Z[5] = Zaruco[2]
 
         if self.kalman.first:
             self.kalman.x = Z1
             self.kalman.first = False
 
         self.kalman.update(Z1)
-        self.kalman.predict()
+        #self.kalman.predict()
 
         vec = Vector3()
         vec.x = self.kalman.x[0]
@@ -110,7 +118,7 @@ class Subscriber(object):
 
 
         self.kalman.update(Z2)
-        self.kalman.predict()
+        #self.kalman.predict()
 
         vec.x = self.kalman.x[0]
         vec.y = self.kalman.x[1]
