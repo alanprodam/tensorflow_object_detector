@@ -67,7 +67,7 @@ class lines:
 
     #cv2.imshow("Image-RN",src_image)
     #cv2.imshow("Image-edges",edges)
-    cv2.waitKey(1)
+    #cv2.waitKey(1)
 
     try:
       self.navigation_pub.publish(msg_navigation)

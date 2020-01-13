@@ -41,31 +41,31 @@ msg_navigation = PointStamped()
 class hough_lines:
  
   def __init__(self):
-    self.img_lines_pub = rospy.Publisher("image_lines",Image, queue_size=100) 
-    self.img_edges_pub = rospy.Publisher("image_edges",Image, queue_size=100)
+    #self.img_lines_pub = rospy.Publisher("image_lines",Image, queue_size=100) 
+    #self.img_edges_pub = rospy.Publisher("image_edges",Image, queue_size=100)
     self.nav_hough_lines_pub = rospy.Publisher("bebop/nav_hough_lines",Twist, queue_size = 100)
 
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback, queue_size=100)
-    self.navigation_sub = rospy.Subscriber('navigation', PointStamped, self.callback_navigation, queue_size=100)
+    #self.navigation_sub = rospy.Subscriber('navigation', PointStamped, self.callback_navigation, queue_size=100)
     # /bebop/odom
     self.odm_sub = rospy.Subscriber('/bebop/odom', Odometry, self.callback_pose, queue_size=100)
   
-  def callback_pose(self,data):
-    global z_position
+  # def callback_pose(self,data):
+  #   global z_position
 
-    msg_odom = Odometry()
-    msg_odom = data
-    z_position = msg_odom.pose.pose.position.z
+  #   msg_odom = Odometry()
+  #   msg_odom = data
+  #   z_position = msg_odom.pose.pose.position.z
 
-  def callback_navigation(self,data):
-    global out1, out2
+  # def callback_navigation(self,data):
+  #   global out1, out2
 
-    msg_navigation = PointStamped()
-    msg_navigation = data
-    out1 = msg_navigation.point.x
-    out2 = msg_navigation.point.y
+  #   msg_navigation = PointStamped()
+  #   msg_navigation = data
+  #   out1 = msg_navigation.point.x
+  #   out2 = msg_navigation.point.y
 
     # rospy.loginfo("msg_navigation x: %f",out1)
     # rospy.loginfo("msg_navigation y: %f",out2)

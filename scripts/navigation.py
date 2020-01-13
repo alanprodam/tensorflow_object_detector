@@ -39,11 +39,14 @@ list_rotation = []
 class lines:
  
   def __init__(self):
-    self.navigation_pub = rospy.Publisher('navigation', Twist, queue_size=100)
+    
+    self.vel_drone_pub = rospy.Publisher("bebop/cmd_vel",Twist, queue_size = 100)
+
+    #self.navigation_pub = rospy.Publisher('navigation', Twist, queue_size=100)
 
     #-- Create a supscriber from topic "image_raw"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback, queue_size=100)
+    self.image_sub = rospy.Subscriber("bebop/image_raw",Image,self.callback,  queue_size=100)#, buff_size=2**24)
     # /bebop/odom
     self.odm_sub = rospy.Subscriber('/bebop/odom', Odometry, self.callback_pose, queue_size=100)
 
@@ -73,9 +76,10 @@ class lines:
     numLines=3
 
     try:
-      src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
+        src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError as e:
-      print(e)
+        rospy.loginfo("no img!")
+        print(e)
 
     img_array = np.array(src_image)
     img_resize = cv2.resize(img_array, (224, 224), interpolation=cv2.INTER_CUBIC)
@@ -122,8 +126,8 @@ class lines:
 
     med_theta = math.degrees(med_theta)
 
-    # zerar erro de leitura Yaw
-    if abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[1]) ) < 60 and abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[2]) ) < 60 and abs( math.degrees(lines_vector[1]) - math.degrees(lines_vector[2]) ) < 60:
+    # zerar erro de leitura Yaw ###angulo 60
+    if abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[1]) ) < 80 and abs( math.degrees(lines_vector[0]) - math.degrees(lines_vector[2]) ) < 80 and abs( math.degrees(lines_vector[1]) - math.degrees(lines_vector[2]) ) < 80:
       if med_theta > (90):
         yaw = (180-med_theta)
       else:
@@ -137,7 +141,7 @@ class lines:
     # rospy.loginfo("Valor x: %f",x)
     # rospy.loginfo("-------------------------")
 
-    ganho_pid = 1000
+    ganho_pid = 1200
     # y in the drone of ROS = X in the image
     y_correction = float(mediana - gray.shape[1]/2)/ganho_pid
 
@@ -214,7 +218,7 @@ class lines:
     altura_desejada = 2.5
     # y in the drone of ROS = X in the image
     erro = float(2.5 - z_position)
-    if erro > abs(0.2):
+    if erro > abs(0.1):
         z_correction = float(2.5 - z_position)/ganho_pid_altura
         #rospy.loginfo("Correction Z %f", z_correction)
     else:
@@ -223,45 +227,59 @@ class lines:
 
     nav_drone = Twist()
 
-    nav_drone.linear.z = z_correction
+    #nav_drone.linear.z = z_correction
 
     if lines is not None:
       rospy.loginfo("Navigation!")
-      if moviment == 0:
-        rospy.loginfo("Reta (Filter)")
-        nav_drone.linear.x = 0.05
-        nav_drone.linear.y = y_correction
+
+      if moviment == 1:
+        rospy.loginfo("Curva (Filter)")
+        nav_drone.linear.x = 0
+        nav_drone.linear.y = 0
         nav_drone.linear.z = 0
 
         nav_drone.angular.x = 0
         nav_drone.angular.y = 0
+        nav_drone.angular.z = z_correction
+      else:
+        rospy.loginfo("Reta (Filter)")
+        nav_drone.linear.x = 0 #0.01
+        nav_drone.linear.y = -y_correction
+        nav_drone.linear.z = z_correction
+
+        nav_drone.angular.x = 0
+        nav_drone.angular.y = 0
         nav_drone.angular.z = yaw*(np.pi/180)
+        rospy.loginfo("Vel Y: %f m/s",y_correction)
         rospy.loginfo("yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
         rospy.loginfo("-------------------------")
 
-      else:
-        rospy.loginfo("Curva (Filter)")
-        if rotation == 1:
-            nav_drone.linear.x = 0
-            nav_drone.linear.y = 0
-            nav_drone.linear.z = 0
 
-            nav_drone.angular.x = 0
-            nav_drone.angular.y = 0
-            nav_drone.angular.z = 0.5*(np.pi/180)
-            rospy.loginfo("...Left-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
-            rospy.loginfo("-------------------------")
+      # else:
+      #   rospy.loginfo("Curva (Filter)")
+      #   if rotation == 1:
+      #       nav_drone.linear.x = 0
+      #       nav_drone.linear.y = 0
+      #       nav_drone.linear.z = z_correction
 
-        else:
-            nav_drone.linear.x = 0
-            nav_drone.linear.y = 0
-            nav_drone.linear.z = 0
+      #       nav_drone.angular.x = 0
+      #       nav_drone.angular.y = 0
+      #       nav_drone.angular.z = 8*(np.pi/180)
+      #       rospy.loginfo("Vel Y: %f m/s",y_correction)
+      #       rospy.loginfo("...Left-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+      #       rospy.loginfo("-------------------------")
 
-            nav_drone.angular.x = 0
-            nav_drone.angular.y = 0
-            nav_drone.angular.z = -0.5*(np.pi/180)
-            rospy.loginfo("...Right-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
-            rospy.loginfo("-------------------------")
+      #   else:
+      #       nav_drone.linear.x = 0
+      #       nav_drone.linear.y = 0
+      #       nav_drone.linear.z = z_correction
+
+      #       nav_drone.angular.x = 0
+      #       nav_drone.angular.y = 0
+      #       nav_drone.angular.z = -8*(np.pi/180)
+      #       rospy.loginfo("Vel Y: %f m/s",y_correction)
+      #       rospy.loginfo("...Right-yaw: %f deg/s",nav_drone.angular.z*(180/np.pi))
+      #       rospy.loginfo("-------------------------")
 
     else:
       rospy.loginfo("Parado!")
@@ -271,11 +289,11 @@ class lines:
 
       nav_drone.angular.x = 0
       nav_drone.angular.y = 0
-      nav_drone.angular.z = 0
+      nav_drone.angular.z = z_correction
       rospy.loginfo("-------------------------")
 
     try:
-      self.navigation_pub.publish(nav_drone)
+      self.vel_drone_pub.publish(nav_drone)
     except:
       rospy.loginfo('No publish!')
 
