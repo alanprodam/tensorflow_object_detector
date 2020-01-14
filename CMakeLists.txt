@@ -9,17 +9,21 @@ include(ExternalData)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  message_generation
   cv_bridge
   rospy
   sensor_msgs
+  geometry_msgs
   std_msgs
   vision_msgs
 )
 
 ##set the URL to download
-set(URL "https://gitlab.com/alanprodam/rcnn_colab/raw/alan-working/marcador_real_images/model/ssd_mobilenet_v1_coco.tar.gz")
+set(URL "https://gitlab.com/alanprodam/rcnn_landmark/raw/master/deteccion/model/ssd_mobilenet_v1_coco.tar.gz")
 set(DOWNLOAD_PATH ${CMAKE_CURRENT_SOURCE_DIR}/data/models/ssd_mobilenet_v1_coco.tar.gz)
 set(EXTRACTED_PATH ${CMAKE_CURRENT_SOURCE_DIR}/data/models)
+
+
 
 if (NOT EXISTS "${EXTRACTED_PATH}/ssd_mobilenet_v1_coco")
   if (NOT EXISTS "${DOWNLOAD_PATH}")
@@ -133,7 +137,7 @@ catkin_package(
 #  DEPENDS system_lib
 )
 
-catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/hough_image.py 
+catkin_install_python(PROGRAMS scripts/detect_ros.py scripts/detect_rcnn.py scripts/detect_aruco.py
 			DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 ###########
 ## Build ##

@@ -16,7 +16,7 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `sudo apt-get install ros-kinetic-usb-cam ros-kinetic-openni2-launch`
 
-3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux
+3. Install tensorflow into python virtualenv: https://www.tensorflow.org/install/install_linux or [virtualenv](https://pythonacademy.com.br/blog/python-e-virtualenv-como-programar-em-ambientes-virtuais)
 
     `sudo apt-get install python-pip python-dev python-virtualenv`
 
@@ -28,7 +28,9 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `pip install --upgrade tensorflow`
 
-4. `mkdir ~/catkin_ws/ && mkdir ~/catkin_ws/src/`
+4. Create folder and src
+
+    `mkdir ~/catkin_ws/ && mkdir ~/catkin_ws/src/`
 
 5. Clone standard Vision messages repository and this repository into `catkin_ws/src`:
 
@@ -50,6 +52,10 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `source ~/tensorflow/bin/activate`
 
+    > **Note:** This command needs to run from every new terminal you start. some questions can be easily taken from the links [stackoverflow](https://stackoverflow.com/questions/57614436/od-graph-def-tf-graphdef-attributeerror-module-tensorflow-has-no-attribut). Take care if all object detection notebooks and models have not been verified with TF 2.0. [Tensorflow](https://github.com/tensorflow/models/issues/7703)
+
+    `python -m pip install tensorflow==1.14`
+
 8. Plug in camera and launch Single Shot Detector (varies per camera, NOTE: `object_detect.launch` also launches the openni2.launch file for the camera. If you are using any other camera, please change the camera topic in the launch file before launching the file)
 
     `roslaunch tensorflow_object_detector object_detect.launch`
@@ -58,6 +64,13 @@ To run Default SSD (Single Shot Detection) algorithm:
 
     `roslaunch tensorflow_object_detector usb_cam_detector.launch`
 
+    OR
+
+    `roslaunch tensorflow_object_detector drone_detector.launch`
+
+    OR
+
+    `roslaunch tensorflow_object_detector rn_victor.launch`
 
 If you want to try any other ML model:
 

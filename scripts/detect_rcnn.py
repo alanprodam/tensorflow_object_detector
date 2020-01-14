@@ -16,7 +16,7 @@ except ImportError:
 
 # ROS related imports
 import rospy
-from std_msgs.msg import String , Header
+from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
@@ -26,10 +26,14 @@ import object_detection
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
+#-- Font for the text in the image
+font = cv2.FONT_HERSHEY_PLAIN
+
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.4
 
-DISTANCE_FOCAL = 490
+DISTANCE_FOCAL = 750
+DIAMETER_LANDMARCK_M = 0.5
 
 MAX_NUMBER_OF_BOXES = 1
 MINIMUM_CONFIDENCE = 0.99
@@ -68,12 +72,11 @@ config = tf.ConfigProto()
 config.gpu_options.per_process_gpu_memory_fraction = GPU_FRACTION
 
 # Detection
-
 class Detector:
 
     def __init__(self):
         self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
-        self.object_pub = rospy.Publisher("objects", Detection2DArray, queue_size=1)
+        self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=1)
 
         # Create a supscriber from topic "image_raw"
         self.bridge = CvBridge()
@@ -97,14 +100,15 @@ class Detector:
         image_np_expanded = np.expand_dims(image_np, axis=0)
         image_tensor = detection_graph.get_tensor_by_name('image_tensor:0')
         # Each box represents a part of the image where a particular object was detected.
-        boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
+        detection_boxes = detection_graph.get_tensor_by_name('detection_boxes:0')
         # Each score represent how level of confidence for each of the objects.
         # Score is shown on the result image, together with the class label.
-        scores = detection_graph.get_tensor_by_name('detection_scores:0')
-        classes = detection_graph.get_tensor_by_name('detection_classes:0')
+        detection_scores = detection_graph.get_tensor_by_name('detection_scores:0')
+        detection_classes = detection_graph.get_tensor_by_name('detection_classes:0')
+        # Number of objects detected
         num_detections = detection_graph.get_tensor_by_name('num_detections:0')
 
-        (boxes, scores, classes, num_detections) = self.sess.run([boxes, scores, classes, num_detections],
+        (boxes, scores, classes, num) = self.sess.run([detection_boxes, detection_scores, detection_classes, num_detections],
             feed_dict={image_tensor: image_np_expanded})
 
         objects=vis_util.visualize_boxes_and_labels_on_image_array(
@@ -121,17 +125,21 @@ class Detector:
         objArray.header=data.header
         object_count=1
 
-        #rospy.loginfo("publish: %f", data.header)
-
         # Object search
         for i in range(len(objects)):
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+            #call fuction to return z of drone
+            #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()
+
+        #-- Print 'X' in the center of the camera
+        image_height,image_width,channels = img.shape
+        cv2.putText(img, "X", (image_width/2, image_height/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
         try:
             image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
@@ -143,8 +151,8 @@ class Detector:
 
     def object_predict(self,object_data, header, image_np,image):
         image_height,image_width,channels = image.shape
-        obj=Detection2D()
-        obj_hypothesis= ObjectHypothesisWithPose()
+        obj = Detection2D()
+        obj_hypothesis = ObjectHypothesisWithPose()
 
         object_id=object_data[0]
         object_score=object_data[1]
@@ -153,12 +161,46 @@ class Detector:
         obj.header=header
         obj_hypothesis.id = object_id
         obj_hypothesis.score = object_score
-        obj.results.append(obj_hypothesis)
-        obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
-        obj.bbox.size_x = int((dimensions[3]-dimensions[1] )*image_width)
-        obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_height/2)
-        obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_width/2)
+        #obj.results.append(obj_hypothesis)
+        obj.bbox.size_y = int((dimensions[2] - dimensions[0])*image_height)
+        obj.bbox.size_x = int((dimensions[3] - dimensions[1])*image_width)
+        obj.bbox.center.x = int((dimensions[1] + dimensions [3])*image_width/2)
+        obj.bbox.center.y = int((dimensions[0] + dimensions[2])*image_height/2)
 
+        ###################################
+        pixelDiametro = obj.bbox.size_x
+        # choose the bigest size
+        if(obj.bbox.size_x > obj.bbox.size_y):
+            pixelDiametro = obj.bbox.size_x
+        else:
+            pixelDiametro = obj.bbox.size_y
+
+        #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+        metersDiametroLandmarck = DIAMETER_LANDMARCK_M
+
+        #DISTANCE_FOCAL = 490
+        distFocus_real = DISTANCE_FOCAL
+
+        altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
+
+        # rospy.loginfo("--------------------------------")
+        # rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        # rospy.loginfo("Altura Drone (m):        %f", altura)
+        ###################################
+
+        pixel_x = int((obj.bbox.center.x-(image_width/2))*(-1))
+        pixel_y = int((obj.bbox.center.y-(image_height/2))*(1))
+
+        k = float(metersDiametroLandmarck/pixelDiametro)
+
+        obj_hypothesis.pose.pose.position.x = pixel_x*k
+        obj_hypothesis.pose.pose.position.y = pixel_y*k
+        obj_hypothesis.pose.pose.position.z = altura
+        obj.results.append(obj_hypothesis)
+
+        #rospy.loginfo("publish obj_hypothesis.score: %d", object_score)
         # rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
         # rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
         # rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
@@ -202,9 +244,11 @@ class Detector:
     
     #     return distFocus_real
 
-    # def distanceLandmarck(self,radius,object_data,image):
+    # def distanceLandmarck(self,object_data,image):
     #     image_height,image_width,channels = image.shape
     #     obj=Detection2D()
+    #     obj_hypothesis= ObjectHypothesisWithPose()
+
     #     dimensions=object_data[2]
 
     #     obj.bbox.size_y = int((dimensions[2]-dimensions[0])*image_height)
@@ -219,24 +263,21 @@ class Detector:
     #     else:
     #         pixelDiametro = obj.bbox.size_y
 
-    #     metersDiametro = 0.24
-    #     disMeter_real = 0.60
+    #     #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+    #     metersDiametroLandmarck = DIAMETER_LANDMARCK_M
 
-    #     distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
+    #     #DISTANCE_FOCAL = 490
+    #     distFocus_real = DISTANCE_FOCAL
 
-    #     #rospy.loginfo("distFocus: %d", distFocus)
-
-    #     distFocus_real = 490
-
-    #     altura = float((metersDiametro * distFocus_real) / pixelDiametro)
+    #     altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
     #     rospy.loginfo("--------------------------------")
-    #     rospy.loginfo("metersDiametro: %f", metersDiametro)
-    #     rospy.loginfo("distFocus_real: %f", distFocus_real)
-    #     rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
-    #     rospy.loginfo("altura:         %f", altura)
-    
-    #     return distFocus_real
+    #     rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+    #     rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+    #     rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+    #     rospy.loginfo("Altura Drone (m):        %f", altura)
+
+    #     return altura
 
 def main(args):
     rospy.init_node('detector_node', log_level=rospy.DEBUG)
