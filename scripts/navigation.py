@@ -211,8 +211,6 @@ class lines:
         #     rospy.loginfo('------------------------------')
 
 
-
-
     #rospy.loginfo("Position Z %f", z_position)
     ganho_pid_altura = 5
     altura_desejada = 2.5
@@ -236,11 +234,11 @@ class lines:
         rospy.loginfo("Curva (Filter)")
         nav_drone.linear.x = 0
         nav_drone.linear.y = 0
-        nav_drone.linear.z = 0
+        nav_drone.linear.z = z_correction
 
         nav_drone.angular.x = 0
         nav_drone.angular.y = 0
-        nav_drone.angular.z = z_correction
+        nav_drone.angular.z = 0
       else:
         rospy.loginfo("Reta (Filter)")
         nav_drone.linear.x = 0 #0.01
