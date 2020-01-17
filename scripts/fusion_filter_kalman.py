@@ -16,13 +16,10 @@ except ImportError:
 
 # ROS related imports of Odometry ans Navigation
 import rospy
-from std_msgs.msg import String, Header
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import Pose, Quaternion, Twist, Vector3
 
-# ROS related imports of Image
-from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+# ROS related imports of Vision
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 
 # Object detection module imports

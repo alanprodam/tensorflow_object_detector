@@ -18,7 +18,7 @@ except ImportError:
 import rospy
 from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
-from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import CompressedImage
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
 
 # Object detection module imports
@@ -75,21 +75,27 @@ config.gpu_options.per_process_gpu_memory_fraction = GPU_FRACTION
 class Detector:
 
     def __init__(self):
-        self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
+        self.image_pub = rospy.Publisher("rcnn/debug_image/compressed",CompressedImage, queue_size=1)
         self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=1)
 
         # Create a supscriber from topic "image_raw"
-        self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("image", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        self.image_sub = rospy.Subscriber("image", CompressedImage, self.image_callback, queue_size=1)
         self.sess = tf.Session(graph=detection_graph,config=config)
 
-    def image_callback(self, data):
+    def image_callback(self, data_ros):
         objArray = Detection2DArray()
-        try:
-            cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        except CvBridgeError as e:
-            print(e)
-        image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
+
+        np_arr = np.fromstring(data_ros.data, np.uint8)
+        image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR) # OpenCV >= 3.0:
+        
+        #image_cv = cv2.cvtColor(image,cv2.COLOR_BGR2RGB)
+        #-- Print 'X' in the center of the camera
+        image_height,image_width,channels = image.shape
+        cv2.putText(image, "X", (image_width/2, image_height/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+
+        # rospy.loginfo("rows: %f",rows)
+        # rospy.loginfo("cols: %f",cols)
+        # rospy.loginfo("-------------------------")
 
         # image_hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
 
@@ -122,35 +128,32 @@ class Detector:
             line_thickness=6)
 
         objArray.detections =[]
-        objArray.header=data.header
+        objArray.header=data_ros.header
         object_count=1
 
         # Object search
         for i in range(len(objects)):
             object_count+=1
-            objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+            objArray.detections.append(self.object_predict(objects[i],data_ros.header,image))
             #call fuction to return z of drone
             #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
-        img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
-        image_out = Image()
+        # image = cv2.imdecode(np_arr, cv2.IMREAD_COLOR) # OpenCV >= 3.0:
 
-        #-- Print 'X' in the center of the camera
-        image_height,image_width,channels = img.shape
-        cv2.putText(img, "X", (image_width/2, image_height/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        #### Create CompressedIamge ####
+        msg = CompressedImage()
+        #msg.header.stamp = data_ros.header.stamp
+        msg.format = "jpeg"
+        msg.data = np.array(cv2.imencode('.jpg', image)[1]).tostring()
+        # Publish new image
+        self.image_pub.publish(msg)
+        
 
-        try:
-            image_out = self.bridge.cv2_to_imgmsg(img,"bgr8")
-        except CvBridgeError as e:
-            print(e)
-
-        image_out.header = data.header
-        self.image_pub.publish(image_out)
-
-    def object_predict(self,object_data, header, image_np,image):
+    def object_predict(self,object_data, header,image):
         image_height,image_width,channels = image.shape
+
         obj = Detection2D()
         obj_hypothesis = ObjectHypothesisWithPose()
 
