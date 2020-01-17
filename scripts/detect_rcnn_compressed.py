@@ -16,7 +16,6 @@ except ImportError:
 
 # ROS related imports
 import rospy
-from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import CompressedImage
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
