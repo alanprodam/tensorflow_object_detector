@@ -15,11 +15,14 @@ from cv_bridge import CvBridge, CvBridgeError
 
 # library use pose mensages
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, Quaternion, Twist
+from geometry_msgs.msg import Pose, Point, Quaternion, Twist
 
 #-- Define Tag\n",
 id_to_find = 273 # 1 273
-marker_size = 0.35 # 0.7 #-m -  0.172 m 
+marker_size = 0.35 # 0.7 #-m -  0.172 m
+
+out = True
+ids = []
 
 #-- Define the Aruco dictionary\n",
 aruco_dict = aruco.Dictionary_get(aruco.DICT_ARUCO_ORIGINAL) #pata de urso
@@ -107,8 +110,7 @@ class aruco_odom:
    
   def callbackImage(self,data):
 
-    #global first_time
-    ids = []
+    global out, ids
 
     try:
       src_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
@@ -135,110 +137,113 @@ class aruco_odom:
     #rospy.loginfo("ids[]: %f", len(ids[0]))
     #int(ids) == id_to_find:
 
-    if ids == None
-      rospy.loginfo("No aruco")
+    # out = np.logical_and(ids != None, ids[0] == id_to_find)
+    # rospy.loginfo(out)
 
-    elif ids[0] == id_to_find:
+    if ids != None:
+      #rospy.loginfo("Aruco working!")
 
-    #if (int(ids[0]) != None and int(ids[0]) == id_to_find):
-      #-- ret= [rvec,tvec, ?]
-      #-- array of rotation and position of each marker in camera frame
-      #-- rvec = [[rvec_1, [rvec2], ...]]  attitude of the marker respect to camera frame
-      #-- tvec = [[tvec_1, [tvec2], ...]]  position of the marker in camera frame
-      ret = aruco.estimatePoseSingleMarkers(corners, marker_size, camera_matrix, camera_distortion)
+      if ids[0] == id_to_find:
 
-      #-- Unpack the output, get only the first\n",
-      rvec, tvec = ret[0][0,0,:], ret[1][0,0,:]
+        #if (int(ids[0]) != None and int(ids[0]) == id_to_find):
+        #-- ret= [rvec,tvec, ?]
+        #-- array of rotation and position of each marker in camera frame
+        #-- rvec = [[rvec_1, [rvec2], ...]]  attitude of the marker respect to camera frame
+        #-- tvec = [[tvec_1, [tvec2], ...]]  position of the marker in camera frame
+        ret = aruco.estimatePoseSingleMarkers(corners, marker_size, camera_matrix, camera_distortion)
 
-      #-- Draw the detected marker and put a reference frame over it\n",
-      aruco.drawDetectedMarkers(src_image, corners)
-      aruco.drawAxis(src_image, camera_matrix, camera_distortion, rvec, tvec, 0.3)
+        #-- Unpack the output, get only the first\n",
+        rvec, tvec = ret[0][0,0,:], ret[1][0,0,:]
 
-      #-- Obtain the rotation matrix tag->camera
-      R_ct = np.matrix(cv2.Rodrigues(rvec)[0])
-      R_tc = R_ct.T # function transpose() with '.T'
+        #-- Draw the detected marker and put a reference frame over it\n",
+        aruco.drawDetectedMarkers(src_image, corners)
+        aruco.drawAxis(src_image, camera_matrix, camera_distortion, rvec, tvec, 0.3)
 
-      #-- Get the attitude in terms of euler 321 (Needs to be flipped first)
-      pitch_marker, roll_marker, yaw_marker = rotationMatrixToEulerAngles(R_tc)
+        #-- Obtain the rotation matrix tag->camera
+        R_ct = np.matrix(cv2.Rodrigues(rvec)[0])
+        R_tc = R_ct.T # function transpose() with '.T'
 
-      #-- Now get Position and attitude f the camera respect to the marker
-      #pos_camera = -R_tc*np.matrix(tvec).T
-      pitch_camera, roll_camera, yaw_camera = rotationMatrixToEulerAngles(R_flip*R_tc)
+        #-- Get the attitude in terms of euler 321 (Needs to be flipped first)
+        pitch_marker, roll_marker, yaw_marker = rotationMatrixToEulerAngles(R_tc)
 
-      pos_camera = Point(-tvec[0], tvec[1], tvec[2])
+        #-- Now get Position and attitude f the camera respect to the marker
+        #pos_camera = -R_tc*np.matrix(tvec).T
+        pitch_camera, roll_camera, yaw_camera = rotationMatrixToEulerAngles(R_flip*R_tc)
 
-      #-- Print 'X' in the center of the camera
-      cv2.putText(src_image, "X", (cols/2, rows/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
+        pos_camera = Point(-tvec[0], tvec[1], tvec[2])
 
-      ###############################################################################
+        #-- Print 'X' in the center of the camera
+        cv2.putText(src_image, "X", (cols/2, rows/2), font, 1, (0, 0, 255), 2, cv2.LINE_AA)
 
-      #-- Print the tag position in camera frame
-      str_position = "Position x = %4.0f  y = %4.0f  z = %4.0f"%(pos_camera.x, pos_camera.y, pos_camera.z)
-      cv2.putText(src_image, str_position, (0, 30), font, 2, (255, 255, 0), 2, cv2.LINE_AA)
+        ###############################################################################
 
-      #-- Get the attitude of the camera respect to the frame
-      str_attitude = "Attitude pitch = %4.0f  roll = %4.0f  yaw = %4.0f"%(math.degrees(0),math.degrees(0),
-                          math.degrees(yaw_camera))
-      cv2.putText(src_image, str_attitude, (0, 60), font, 2, (255, 255, 0), 2, cv2.LINE_AA)
+        #-- Print the tag position in camera frame
+        str_position = "Position x = %4.0f  y = %4.0f  z = %4.0f"%(pos_camera.x, pos_camera.y, pos_camera.z)
+        cv2.putText(src_image, str_position, (0, 30), font, 2, (255, 255, 0), 2, cv2.LINE_AA)
 
-      ###############################################################################
+        #-- Get the attitude of the camera respect to the frame
+        str_attitude = "Attitude pitch = %4.0f  roll = %4.0f  yaw = %4.0f"%(math.degrees(0),math.degrees(0),
+                            math.degrees(yaw_camera))
+        cv2.putText(src_image, str_attitude, (0, 60), font, 2, (255, 255, 0), 2, cv2.LINE_AA)
 
-      #cv2.imshow("Image-Aruco", src_image)
-      #cv2.waitKey(1)
+        ###############################################################################
 
-      aruco_odom = Odometry()
-      #aruco_odom.header.stamp = rospy.Time.now()-first_time
-      aruco_odom.header.stamp = rospy.Time.now()
-      aruco_odom.header.frame_id = "odom_aruco"
-      aruco_odom.header.seq = self.Keyframe_aruco
-      aruco_odom.child_frame_id = "drone_base"
+        #cv2.imshow("Image-Aruco", src_image)
+        #cv2.waitKey(1)
 
-      # since all odometry is 6DOF we'll need a quaternion created from yaw
-      odom_quat = tf.transformations.quaternion_from_euler(0, 0, yaw_camera)
+        aruco_odom = Odometry()
+        #aruco_odom.header.stamp = rospy.Time.now()-first_time
+        aruco_odom.header.stamp = rospy.Time.now()
+        aruco_odom.header.frame_id = "odom_aruco"
+        aruco_odom.header.seq = self.Keyframe_aruco
+        aruco_odom.child_frame_id = "drone_base"
 
-      # set the position
-      aruco_odom.pose.pose = Pose(pos_camera, Quaternion(*odom_quat))
+        # since all odometry is 6DOF we'll need a quaternion created from yaw
+        odom_quat = tf.transformations.quaternion_from_euler(0, 0, yaw_camera)
 
-      tf_br = tf.TransformBroadcaster()
-      tf_br.sendTransform((pos_camera.x, pos_camera.y, pos_camera.z), 
-                          odom_quat, 
-                          aruco_odom.header.stamp, 
-                          "drone_base",
-                          "odom_aruco") #world
+        # set the position
+        aruco_odom.pose.pose = Pose(pos_camera, Quaternion(*odom_quat))
 
-      self.Keyframe_aruco += 1
+        tf_br = tf.TransformBroadcaster()
+        tf_br.sendTransform((pos_camera.x, pos_camera.y, pos_camera.z), 
+                            odom_quat, 
+                            aruco_odom.header.stamp, 
+                            "drone_base",
+                            "odom_aruco") #world
 
-      # euler_ori = Twist()
-      # euler_ori.linear.x = -tvec[0]
-      # euler_ori.linear.y = tvec[1]
-      # euler_ori.linear.z = tvec[2]
+        self.Keyframe_aruco += 1
 
-      # euler_ori.angular.x = math.degrees(0)
-      # euler_ori.angular.y = math.degrees(0)
-      # euler_ori.angular.z = math.degrees(yaw_camera)
+        # euler_ori = Twist()
+        # euler_ori.linear.x = -tvec[0]
+        # euler_ori.linear.y = tvec[1]
+        # euler_ori.linear.z = tvec[2]
+
+        # euler_ori.angular.x = math.degrees(0)
+        # euler_ori.angular.y = math.degrees(0)
+        # euler_ori.angular.z = math.degrees(yaw_camera)
 
 
-      # euler_ori = Twist()
-      # euler_ori.linear.x = -tvec[0]
-      # euler_ori.linear.y =  tvec[1]
-      # euler_ori.linear.z =  tvec[2]
+        # euler_ori = Twist()
+        # euler_ori.linear.x = -tvec[0]
+        # euler_ori.linear.y =  tvec[1]
+        # euler_ori.linear.z =  tvec[2]
 
-      # euler_ori.angular.x = math.degrees(0)
-      # euler_ori.angular.y = math.degrees(0)
-      # euler_ori.angular.z = math.degrees(yaw_camera)
+        # euler_ori.angular.x = math.degrees(0)
+        # euler_ori.angular.y = math.degrees(0)
+        # euler_ori.angular.z = math.degrees(yaw_camera)
 
-      #rospy.loginfo('Id detected!')
+        #rospy.loginfo('Id detected!')
 
-      try:
-        self.pose_aruco_pub.publish(aruco_odom)
-        #self.orientation_euler_pub.publish(euler_ori)
-      except:
-        rospy.loginfo('No publish!')
+        try:
+          self.pose_aruco_pub.publish(aruco_odom)
+          #self.orientation_euler_pub.publish(euler_ori)
+        except:
+          rospy.loginfo('No publish!')
 
-      try:
-        self.image_pub.publish(self.bridge.cv2_to_imgmsg(src_image, "bgr8"))
-      except CvBridgeError as e:
-        print(e)
+        try:
+          self.image_pub.publish(self.bridge.cv2_to_imgmsg(src_image, "bgr8"))
+        except CvBridgeError as e:
+          print(e)
 
     else:
       rospy.loginfo('No Id detected!')
