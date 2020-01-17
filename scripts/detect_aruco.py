@@ -2,12 +2,11 @@
 import rospy, os, sys
 import time
 import math
-#from math import sin, cos, pi
-import cv2
 import tf
 
-# numpy and scipy
+# numpy and OpenCV
 import numpy as np
+import cv2
 import cv2.aruco as aruco
 
 # library to get image
@@ -16,8 +15,7 @@ from cv_bridge import CvBridge, CvBridgeError
 
 # library use pose mensages
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import PoseWithCovarianceStamped
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
+from geometry_msgs.msg import Pose, Quaternion, Twist
 
 #-- Define Tag\n",
 id_to_find = 273 # 1 273
@@ -94,13 +92,15 @@ class aruco_odom:
 
     #-- Create a publisher to topic "aruco_results"
     self.pose_aruco_pub = rospy.Publisher("bebop/pose_aruco",Odometry, queue_size = 100)
-    self.orientation_euler_pub = rospy.Publisher("bebop/euler_aruco",Twist, queue_size = 100)
+    #self.orientation_euler_pub = rospy.Publisher("bebop/euler_aruco",Twist, queue_size = 100)
     self.image_pub = rospy.Publisher("bebop/image_aruco",Image, queue_size = 100)
     #self.orientation_euler_pub = rospy.Publisher("bebop/orientation_euler",Twist, queue_size = 100)
 
     #-- Create a supscriber from topic "image_raw" and publisher to "bebop/image_aruco"
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("usb_cam_node/image_raw", Image, self.callbackImage, queue_size=1, buff_size=2**24)
+    #self.image_sub = rospy.Subscriber("usb_cam_node/image_raw", Image, self.callbackImage, queue_size=1, buff_size=2**24)
+    self.image_sub = rospy.Subscriber("image", Image, self.callbackImage, queue_size=100)
+    
     self.Keyframe_aruco = 0
 
 ###############################################################################
@@ -135,7 +135,10 @@ class aruco_odom:
     #rospy.loginfo("ids[]: %f", len(ids[0]))
     #int(ids) == id_to_find:
 
-    if ids[0] != None and ids[0] == id_to_find:
+    if ids == None
+      rospy.loginfo("No aruco")
+
+    elif ids[0] == id_to_find:
 
     #if (int(ids[0]) != None and int(ids[0]) == id_to_find):
       #-- ret= [rvec,tvec, ?]
@@ -203,31 +206,32 @@ class aruco_odom:
                           "drone_base",
                           "odom_aruco") #world
 
-      euler_ori = Twist()
-      euler_ori.linear.x = -tvec[0]
-      euler_ori.linear.y = tvec[1]
-      euler_ori.linear.z = tvec[2]
-
-      euler_ori.angular.x = math.degrees(0)
-      euler_ori.angular.y = math.degrees(0)
-      euler_ori.angular.z = math.degrees(yaw_camera)
-
       self.Keyframe_aruco += 1
 
-      euler_ori = Twist()
-      euler_ori.linear.x = -tvec[0]
-      euler_ori.linear.y =  tvec[1]
-      euler_ori.linear.z =  tvec[2]
+      # euler_ori = Twist()
+      # euler_ori.linear.x = -tvec[0]
+      # euler_ori.linear.y = tvec[1]
+      # euler_ori.linear.z = tvec[2]
 
-      euler_ori.angular.x = math.degrees(0)
-      euler_ori.angular.y = math.degrees(0)
-      euler_ori.angular.z = math.degrees(yaw_camera)
+      # euler_ori.angular.x = math.degrees(0)
+      # euler_ori.angular.y = math.degrees(0)
+      # euler_ori.angular.z = math.degrees(yaw_camera)
+
+
+      # euler_ori = Twist()
+      # euler_ori.linear.x = -tvec[0]
+      # euler_ori.linear.y =  tvec[1]
+      # euler_ori.linear.z =  tvec[2]
+
+      # euler_ori.angular.x = math.degrees(0)
+      # euler_ori.angular.y = math.degrees(0)
+      # euler_ori.angular.z = math.degrees(yaw_camera)
 
       #rospy.loginfo('Id detected!')
 
       try:
         self.pose_aruco_pub.publish(aruco_odom)
-        self.orientation_euler_pub.publish(euler_ori)
+        #self.orientation_euler_pub.publish(euler_ori)
       except:
         rospy.loginfo('No publish!')
 

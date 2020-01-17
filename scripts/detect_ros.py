@@ -16,7 +16,7 @@ except ImportError:
 
 # ROS related imports
 import rospy
-from std_msgs.msg import String , Header
+from std_msgs.msg import String, Header
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose

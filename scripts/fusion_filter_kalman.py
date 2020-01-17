@@ -14,12 +14,13 @@ except ImportError:
     print("  sudo pip install tensorflow")
     sys.exit(1)
 
-# ROS related imports
+# ROS related imports of Odometry ans Navigation
 import rospy
 from std_msgs.msg import String, Header
-from nav_msgs.msg import Odometry, Path
-from geometry_msgs.msg import PoseWithCovarianceStamped, PoseStamped
-from geometry_msgs.msg import Point, Pose, Quaternion, Twist, Vector3
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Pose, Quaternion, Twist, Vector3
+
+# ROS related imports of Image
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge, CvBridgeError
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
@@ -115,9 +116,9 @@ class Subscriber(object):
         # rospy.loginfo("aruco_pose.y (m): %f", aruco_pose.pose.pose.position.y)
         # rospy.loginfo("aruco_pose.z (m): %f", aruco_pose.pose.pose.position.z)
         # rospy.loginfo("--------------------------------")
-        # rospy.loginfo("rcnn_pose.x (m): %f", obj_hypothesis.pose.pose.position.x)
-        # rospy.loginfo("rcnn_pose.y (m): %f", obj_hypothesis.pose.pose.position.y)
-        # rospy.loginfo("rcnn_pose.z (m): %f", obj_hypothesis.pose.pose.position.z)
+        # rospy.loginfo("rcnn_pose.x (m): %f", VecNeural.x)
+        # rospy.loginfo("rcnn_pose.y (m): %f", VecNeural.y)
+        # rospy.loginfo("rcnn_pose.z (m): %f", VecNeural.z)
 
         # print "received data: ", data
         Zneural = [VecNeural.x, VecNeural.y, VecNeural.z]
