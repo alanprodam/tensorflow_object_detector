@@ -76,7 +76,7 @@ class Subscriber(object):
         #r.sleep()
 
         rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
-        rospy.Subscriber("bebop/pose_aruco",Odometry, self.callbackPoseAruco)
+        rospy.Subscriber("aruco_double/pose",Pose, self.callbackPoseAruco)
         
 
         try: 
@@ -110,19 +110,19 @@ class Subscriber(object):
 
     def callbackPoseAruco(self, data):
         # recive data
-        aruco_pose = data
+        #aruco_pose = data
         # rospy.loginfo("--------------------------------")
-        # rospy.loginfo("aruco_pose.x (m): %f", aruco_pose.pose.pose.position.x)
-        # rospy.loginfo("aruco_pose.y (m): %f", aruco_pose.pose.pose.position.y)
-        # rospy.loginfo("aruco_pose.z (m): %f", aruco_pose.pose.pose.position.z)
-        # rospy.loginfo("--------------------------------")
+        rospy.loginfo("aruco_pose.x (m): %f", data.position.x)
+        rospy.loginfo("aruco_pose.y (m): %f", data.position.y)
+        rospy.loginfo("aruco_pose.z (m): %f", data.position.z)
+        rospy.loginfo("--------------------------------")
         # rospy.loginfo("rcnn_pose.x (m): %f", VecNeural.x)
         # rospy.loginfo("rcnn_pose.y (m): %f", VecNeural.y)
         # rospy.loginfo("rcnn_pose.z (m): %f", VecNeural.z)
 
         # print "received data: ", data
         Zneural = [VecNeural.x, VecNeural.y, VecNeural.z]
-        Zaruco = [data.x, data.y, data.z]
+        Zaruco = [data.position.x, data.position.y, data.position.z]
 
         Z = np.matrix(np.concatenate((Zneural, Zaruco), axis=None)).getT()
 
