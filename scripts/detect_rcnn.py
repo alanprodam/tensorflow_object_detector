@@ -33,6 +33,7 @@ font = cv2.FONT_HERSHEY_PLAIN
 GPU_FRACTION = 0.4
 
 DISTANCE_FOCAL = 750
+
 DIAMETER_LANDMARCK_M = 0.5
 
 MAX_NUMBER_OF_BOXES = 1
@@ -82,6 +83,9 @@ class Detector:
         self.bridge = CvBridge()
         self.image_sub = rospy.Subscriber("image", Image, self.image_callback, queue_size=1, buff_size=2**24)
         self.sess = tf.Session(graph=detection_graph,config=config)
+
+        DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.5)
+        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), DIAMETER_LANDMARCK_M, 0.5)
 
     def image_callback(self, data):
         objArray = Detection2DArray()
@@ -183,8 +187,8 @@ class Detector:
 
         altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-        # rospy.loginfo("--------------------------------")
-        # rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        rospy.loginfo("--------------------------------")
+        rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
         # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
         # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
         # rospy.loginfo("Altura Drone (m):        %f", altura)

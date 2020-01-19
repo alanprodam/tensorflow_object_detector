@@ -9,6 +9,8 @@
   <arg name="marker2_frame"     default="tag_2" />
   <arg name="corner_refinement" default="SUBPIX"/>
 
+  <arg name="markerSizeRCNN"    default="0.50"/>    <!-- in m -->
+
   <node pkg="aruco_ros" type="double" name="aruco_double">
       <remap from="/camera_info" to="/bebop/camera_info" />
       <remap from="/image" to="/bebop/image_raw" />
@@ -25,7 +27,8 @@
   </node>
 
   <node pkg= "tensorflow_object_detector" name="detect_rcnn" type="detect_rcnn.py"  output="screen"> 
-    <remap from="image" to="/bebop/image_raw"/> 
+    <remap from="image" to="/bebop/image_raw"/>
+    <param name="markerSize_RCNN" value="$(arg markerSizeRCNN)"/>
   </node>
 
 <!--   <node pkg= "tensorflow_object_detector" name="filter" type="fusion_filter_kalman.py"  output="screen"> 
