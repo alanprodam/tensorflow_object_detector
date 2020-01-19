@@ -33,10 +33,11 @@ font = cv2.FONT_HERSHEY_PLAIN
 GPU_FRACTION = 0.4
 
 DISTANCE_FOCAL = 750
-DIAMETER_LANDMARCK_M = 0.5
+
+DIAMETER_LANDMARCK_M = 0.05
 
 MAX_NUMBER_OF_BOXES = 1
-MINIMUM_CONFIDENCE = 0.99
+MINIMUM_CONFIDENCE = 0.95 
 
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
@@ -75,23 +76,32 @@ config.gpu_options.per_process_gpu_memory_fraction = GPU_FRACTION
 class Detector:
 
     def __init__(self):
-        self.image_pub = rospy.Publisher("debug_image",Image, queue_size=1)
+
+        self.list_h = [0]
+        self.sum_h = 0
+        self.med_h = 0
+
+        self.image_pub = rospy.Publisher("rcnn/debug_image",Image, queue_size=1)
         self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=1)
+        self.rcnn_pub = rospy.Publisher('rcnn/nav_position', Vector3, queue_size=100)
 
         # Create a supscriber from topic "image_raw"
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("image", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        self.image_sub = rospy.Subscriber("/bebop/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
         self.sess = tf.Session(graph=detection_graph,config=config)
 
+        DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.5)
+        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), DIAMETER_LANDMARCK_M, 0.05)
+
     def image_callback(self, data):
+        global list_h, sum_h
+
         objArray = Detection2DArray()
         try:
             cv_image = self.bridge.imgmsg_to_cv2(data, "bgr8")
         except CvBridgeError as e:
             print(e)
         image = cv2.cvtColor(cv_image,cv2.COLOR_BGR2RGB)
-
-        # image_hsv = cv2.cvtColor(cv_image,cv2.COLOR_BGR2HSV)
 
         # the array based representation of the image will be used later in order to prepare the
         # result image with boxes and labels on it.
@@ -125,15 +135,39 @@ class Detector:
         objArray.header=data.header
         object_count=1
 
+        self.list_h = [0]
+        self.sum_h = 0
+
         # Object search
         for i in range(len(objects)):
+            altura = 0
             object_count+=1
-            objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+            objArray.detections.append(self.object_predict(objects[i],data.header,cv_image))
             #call fuction to return z of drone
             #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
+        if len(self.list_h) > 0:
+            med_h_ant = self.sum_h/len(self.list_h)
+
+        if med_h_ant != 0:
+            self.med_h = med_h_ant
+
+        # rospy.logdebug("--------------------------------")
+        # rospy.logdebug("Tamanho da lista(out): %f", len(self.list_h))
+        # rospy.logdebug("Somatoria lista(out): %f", self.sum_h)
+        rospy.logdebug("Altura Filtrada (out): %f", self.med_h)
+
+        msg_navigation = Vector3()
+        msg_navigation.x = 0
+        msg_navigation.y = 0
+        msg_navigation.z = med_h_ant
+ 
+        self.rcnn_pub.publish(msg_navigation)
+
+        ########################################################################################
+        # Create img to publish
         img=cv2.cvtColor(image_np, cv2.COLOR_BGR2RGB)
         image_out = Image()
 
@@ -149,7 +183,7 @@ class Detector:
         image_out.header = data.header
         self.image_pub.publish(image_out)
 
-    def object_predict(self,object_data, header, image_np,image):
+    def object_predict(self,object_data, header,image):
         image_height,image_width,channels = image.shape
         obj = Detection2D()
         obj_hypothesis = ObjectHypothesisWithPose()
@@ -183,15 +217,26 @@ class Detector:
 
         altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-        # rospy.loginfo("--------------------------------")
-        # rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
-        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
-        # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
-        # rospy.loginfo("Altura Drone (m):        %f", altura)
-        ###################################
-
         pixel_x = int((obj.bbox.center.x-(image_width/2))*(-1))
         pixel_y = int((obj.bbox.center.y-(image_height/2))*(1))
+
+        # rospy.logdebug("Diametro Marcador Real (instante):  %f", metersDiametroLandmarck)
+        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        rospy.logdebug("Altura Drone (instante):        %f", altura)
+        rospy.logdebug("--------------------------------")
+        ###################################
+        
+        if self.list_h[0] == 0:
+            self.list_h.append(altura)
+            self.sum_h = sum(self.list_h)
+            del self.list_h[0]
+        else: 
+            self.list_h.append(altura)
+            self.sum_h = sum(self.list_h)
+        # rospy.logdebug("--------------------------------")
+        # rospy.logdebug('Size of list: %f',len(self.list_h))
+        # rospy.logdebug('Sum List: %f',self.sum_h)
 
         k = float(metersDiametroLandmarck/pixelDiametro)
 
