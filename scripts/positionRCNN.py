@@ -77,12 +77,6 @@ class Detector:
 
     def __init__(self):
 
-        self.list_z = [0]
-        self.sum_z = 0
-        self.med_z = 0
-
-        self.list_z2 = []
-
         self.image_pub = rospy.Publisher("rcnn/debug_image",Image, queue_size=100)
         self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=100)
 
@@ -95,7 +89,6 @@ class Detector:
         rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), DIAMETER_LANDMARCK_M, 0.05)
 
     def image_callback(self, data):
-        #global list_z2
 
         objArray = Detection2DArray()
         try:
@@ -137,40 +130,14 @@ class Detector:
         objArray.header.frame_id = "Navigation RCNN"
         object_count=1
 
-        self.list_z = [0]
-        self.sum_z = 0
-
-        self.list_z2 = []
-
         # Object search
         for i in range(len(objects)):
-            altura = 0
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,cv_image))
-            self.list_z2.append(objArray.detections[i].results[0].pose.pose.position.z)
-
             #call fuction to return z of drone
             #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
-
-        if len(self.list_z) > 0:
-            med_z_ant = self.sum_z/len(self.list_z)
-
-
-        # if object_count > 1:
-        #     for i in range(len(objects)):
-        #         rospy.logdebug("Altura Estimada z[%f]: %f", int(i), objArray.detections[i].results[0].pose.pose.position.z)
-
-
-        if med_z_ant != 0:
-            self.med_z = med_z_ant
-
-        # rospy.logdebug("--------------------------------")
-        # rospy.logdebug("Tamanho da lista(out): %f", len(self.list_z))
-        # rospy.logdebug("Somatoria lista(out): %f", self.sum_z)
-        rospy.logdebug("Altura Filtrada (out): %f", self.med_z)
-
 
         ########################################################################################
         # Create img to publish
@@ -234,17 +201,6 @@ class Detector:
 
         ###################################################################################
         
-        if self.list_z[0] == 0:
-            self.list_z.append(altura)
-            self.sum_z = sum(self.list_z)
-            del self.list_z[0]
-        else: 
-            self.list_z.append(altura)
-            self.sum_z = sum(self.list_z)
-        # rospy.logdebug("--------------------------------")
-        # rospy.logdebug('Size of list: %f',len(self.list_z))
-        # rospy.logdebug('Sum List: %f',self.sum_z)
-
         k = float(metersDiametroLandmarck/pixelDiametro)
 
         obj_hypothesis.pose.pose.position.x = pixel_x*k
