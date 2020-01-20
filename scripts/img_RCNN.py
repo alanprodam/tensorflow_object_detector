@@ -32,10 +32,6 @@ font = cv2.FONT_HERSHEY_PLAIN
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.4
 
-DISTANCE_FOCAL = 750
-
-DIAMETER_LANDMARCK_M = 0.05
-
 MAX_NUMBER_OF_BOXES = 1
 MINIMUM_CONFIDENCE = 0.95 
 
@@ -85,8 +81,11 @@ class Detector:
         self.image_sub = rospy.Subscriber("/bebop/image_raw", Image, self.image_callback, queue_size=100)
         self.sess = tf.Session(graph=detection_graph,config=config)
 
-        DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.5)
-        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), DIAMETER_LANDMARCK_M, 0.05)
+        self.DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.03)
+        self.DISTANCE_FOCAL = rospy.get_param('~self.distance_focal', 740)
+
+        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), self.DIAMETER_LANDMARCK_M, 0.03)
+        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~self.distance_focal'), self.DISTANCE_FOCAL, 750)
 
     def image_callback(self, data):
 
@@ -182,11 +181,11 @@ class Detector:
         else:
             pixelDiametro = obj.bbox.size_y
 
-        #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
-        metersDiametroLandmarck = DIAMETER_LANDMARCK_M
+        #self.DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+        metersDiametroLandmarck = self.DIAMETER_LANDMARCK_M
 
-        #DISTANCE_FOCAL = 490
-        distFocus_real = DISTANCE_FOCAL
+        #self.DISTANCE_FOCAL = 490
+        distFocus_real = self.DISTANCE_FOCAL
 
         altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
@@ -271,11 +270,11 @@ class Detector:
     #     else:
     #         pixelDiametro = obj.bbox.size_y
 
-    #     #DIAMETER_LANDMARCK_M = 0.24 OR 0.5
-    #     metersDiametroLandmarck = DIAMETER_LANDMARCK_M
+    #     #self.DIAMETER_LANDMARCK_M = 0.24 OR 0.5
+    #     metersDiametroLandmarck = self.DIAMETER_LANDMARCK_M
 
-    #     #DISTANCE_FOCAL = 490
-    #     distFocus_real = DISTANCE_FOCAL
+    #     #self.DISTANCE_FOCAL = 490
+    #     distFocus_real = self.DISTANCE_FOCAL
 
     #     altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
