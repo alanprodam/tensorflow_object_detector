@@ -214,7 +214,7 @@ class hough_lines:
 
     #cv2.imshow("Image-lines",resize)
     #cv2.imshow("Image-edges",edges)
-    cv2.waitKey(1)
+    #cv2.waitKey(1)
 
 
     try:
