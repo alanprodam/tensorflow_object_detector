@@ -83,19 +83,19 @@ class Detector:
 
         self.list_z2 = []
 
-        self.image_pub = rospy.Publisher("rcnn/debug_image",Image, queue_size=1)
-        self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=1)
-        self.rcnn_pub = rospy.Publisher('rcnn/nav_position', Vector3, queue_size=100)
+        self.image_pub = rospy.Publisher("rcnn/debug_image",Image, queue_size=100)
+        self.object_pub = rospy.Publisher("rcnn/objects", Detection2DArray, queue_size=100)
 
         # Create a supscriber from topic "image_raw"
         self.bridge = CvBridge()
-        self.image_sub = rospy.Subscriber("/bebop/image_raw", Image, self.image_callback, queue_size=1, buff_size=2**24)
+        self.image_sub = rospy.Subscriber("/bebop/image_raw", Image, self.image_callback, queue_size=100)
         self.sess = tf.Session(graph=detection_graph,config=config)
 
         DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.5)
         rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), DIAMETER_LANDMARCK_M, 0.05)
 
     def image_callback(self, data):
+        #global list_z2
 
         objArray = Detection2DArray()
         try:
@@ -139,6 +139,7 @@ class Detector:
 
         self.list_z = [0]
         self.sum_z = 0
+
         self.list_z2 = []
 
         # Object search
@@ -146,7 +147,8 @@ class Detector:
             altura = 0
             object_count+=1
             objArray.detections.append(self.object_predict(objects[i],data.header,cv_image))
-            list_z2.append(objArray.detections[i].results[0].pose.pose.position.z)
+            self.list_z2.append(objArray.detections[i].results[0].pose.pose.position.z)
+
             #call fuction to return z of drone
             #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
@@ -156,9 +158,9 @@ class Detector:
             med_z_ant = self.sum_z/len(self.list_z)
 
 
-        if object_count > 1:
-            for i in range(len(objects)):
-                rospy.logdebug("Altura Estimada z[%f]: %f", int(i), objArray.detections[i].results[0].pose.pose.position.z)
+        # if object_count > 1:
+        #     for i in range(len(objects)):
+        #         rospy.logdebug("Altura Estimada z[%f]: %f", int(i), objArray.detections[i].results[0].pose.pose.position.z)
 
 
         if med_z_ant != 0:
@@ -169,13 +171,6 @@ class Detector:
         # rospy.logdebug("Somatoria lista(out): %f", self.sum_z)
         rospy.logdebug("Altura Filtrada (out): %f", self.med_z)
 
-
-        msg_navigation = Vector3()
-        msg_navigation.x = 0
-        msg_navigation.y = 0
-        msg_navigation.z = med_z_ant
- 
-        self.rcnn_pub.publish(msg_navigation)
 
         ########################################################################################
         # Create img to publish
@@ -232,8 +227,8 @@ class Detector:
         pixel_y = int((obj.bbox.center.y-(image_height/2))*(1))
 
         # rospy.logdebug("Diametro Marcador Real (instante):  %f", metersDiametroLandmarck)
-        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
-        # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
+        # rospy.logdebug("Distancia Focal Real:    %f", distFocus_real)
+        # rospy.logdebug("Diametro (pixel):        %f", pixelDiametro)
         # rospy.logdebug("Altura Drone (instante):        %f", altura)
         # rospy.logdebug("--------------------------------")
 
@@ -257,11 +252,11 @@ class Detector:
         obj_hypothesis.pose.pose.position.z = altura
         obj.results.append(obj_hypothesis)
 
-        # rospy.loginfo("publish obj_hypothesis.score: %d", object_score)
-        # rospy.loginfo("publish bbox.size x: %d", obj.bbox.size_x)
-        # rospy.loginfo("publish bbox.size y: %d", obj.bbox.size_y)
-        # rospy.loginfo("publish bbox.center x: %d", obj.bbox.center.x)
-        # rospy.loginfo("publish bbox.center y: %d", obj.bbox.center.y)
+        # rospy.logdebug("publish obj_hypothesis.score: %d", object_score)
+        # rospy.logdebug("publish bbox.size x: %d", obj.bbox.size_x)
+        # rospy.logdebug("publish bbox.size y: %d", obj.bbox.size_y)
+        # rospy.logdebug("publish bbox.center x: %d", obj.bbox.center.x)
+        # rospy.logdebug("publish bbox.center y: %d", obj.bbox.center.y)
 
         return obj
 
@@ -287,17 +282,17 @@ class Detector:
 
     #     distFocus = float((pixelDiametro * disMeter_real) / metersDiametro)
 
-    #     #rospy.loginfo("distFocus: %d", distFocus)
+    #     #rospy.logdebug("distFocus: %d", distFocus)
 
     #     distFocus_real = 490
 
     #     altura = float((metersDiametro * distFocus_real) / pixelDiametro)
 
-    #     rospy.loginfo("--------------------------------")
-    #     rospy.loginfo("metersDiametro: %f", metersDiametro)
-    #     rospy.loginfo("distFocus_real: %f", distFocus_real)
-    #     rospy.loginfo("pixelDiametro:  %f", pixelDiametro)
-    #     rospy.loginfo("altura:         %f", altura)
+    #     rospy.logdebug("--------------------------------")
+    #     rospy.logdebug("metersDiametro: %f", metersDiametro)
+    #     rospy.logdebug("distFocus_real: %f", distFocus_real)
+    #     rospy.logdebug("pixelDiametro:  %f", pixelDiametro)
+    #     rospy.logdebug("altura:         %f", altura)
     
     #     return distFocus_real
 
@@ -328,11 +323,11 @@ class Detector:
 
     #     altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-    #     rospy.loginfo("--------------------------------")
-    #     rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
-    #     rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
-    #     rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
-    #     rospy.loginfo("Altura Drone (m):        %f", altura)
+    #     rospy.logdebug("--------------------------------")
+    #     rospy.logdebug("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+    #     rospy.logdebug("Distancia Focal Real:    %f", distFocus_real)
+    #     rospy.logdebug("Diametro (pixel):        %f", pixelDiametro)
+    #     rospy.logdebug("Altura Drone (m):        %f", altura)
 
     #     return altura
 
