@@ -6,8 +6,9 @@ import os
 import sys
 import cv2
 import numpy as np
+import tf
 try:
-    import tensorflow as tf
+    import tensorflow as tsf
 except ImportError:
     print("unable to import TensorFlow. Is it installed?")
     print("  sudo apt install python-pip")
@@ -17,7 +18,7 @@ except ImportError:
 # ROS related imports of Odometry ans Navigation
 import rospy
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, Quaternion, Twist, Vector3
+from geometry_msgs.msg import Pose, PoseStamped, Quaternion, Twist, Vector3
 
 # ROS related imports of Vision
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
@@ -69,8 +70,15 @@ class Subscriber(object):
 
         self.VecNeural = Vector3()
         self.VecAruco = Vector3()
+        self.OriAruco = Quaternion()
 
-        self.pub_hibrid = rospy.Publisher('kalman/hibrid', Vector3)
+        # Publishers
+        self.pub_hibrid = rospy.Publisher('kalman/hybrid', Vector3)
+        self.pose_pub = rospy.Publisher("odom", PoseStamped)
+
+        # transform tf
+        odom_broadcaster = tf.TransformBroadcaster()
+
         rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
         rospy.Subscriber("aruco_double/pose",Pose, self.callbackPoseAruco)
 
@@ -103,9 +111,9 @@ class Subscriber(object):
             Zarray = np.concatenate((arrayNeral, arrayAruco), axis=None)
             self.kalman.R = np.diag(Zarray)
 
-            rospy.logdebug("------------------------")
-            rospy.logdebug("arrayNeral : %f", covNeural)
-            rospy.logdebug("arrayAruco : %f", covAruco)
+            # rospy.logdebug("------------------------")
+            # rospy.logdebug("arrayNeral : %f", covNeural)
+            # rospy.logdebug("arrayAruco : %f", covAruco)
 
             self.kalman.predict()
             self.kalman.update(Z)
@@ -120,7 +128,31 @@ class Subscriber(object):
             rospy.logdebug("kalman.sensor[1].y : %f", vec.y)
             rospy.logdebug("kalman.sensor[1].z : %f", vec.z)
 
+            # publish the transform over tf
+            odom_broadcaster.sendTransform(
+                (vec.x,vec.y,vec.z),
+                (self.OriAruco.x, self.OriAruco.y, self.OriAruco.z, self.OriAruco.w),
+                rospy.Time.now(),
+                "odom",
+                "odom_hybrid"
+            )
+
+            hybrid = PoseStamped()
+            hybrid.header.stamp = rospy.Time.now()
+            hybrid.header.frame_id = "odom_hybrid"
+
+            # # set the position
+            hybrid.pose = Pose(vec, self.OriAruco)
+
+            # # set the velocity
+            hybrid.child_frame_id = "odom"
+            # hybrid.twist.twist = Twist(Vector3(vx, vy, 0), Vector3(0, 0, vth))
+
+            # # publish the message
+            self.pose_pub.publish(hybrid)
+
             self.pub_hibrid.publish(vec)
+
             r.sleep()
 
         try: 
@@ -137,7 +169,8 @@ class Subscriber(object):
         # rospy.logdebug(" lenth objArray.detections: %f", len(objArray.detections))
         
         if len(objArray.detections) != 0:
-            self.VecNeural.x = self.kalman.x[0] = objArray.detections[0].results[0].pose.pose.position.x
+            # align coordinate axis X
+            self.VecNeural.x = self.kalman.x[0] = (-1)*(objArray.detections[0].results[0].pose.pose.position.x)
             self.VecNeural.y = self.kalman.x[1] = objArray.detections[0].results[0].pose.pose.position.y
             self.VecNeural.z = self.kalman.x[2] = objArray.detections[0].results[0].pose.pose.position.z
             # rospy.logdebug("--------------------------------")
@@ -153,6 +186,7 @@ class Subscriber(object):
         # print "received data: ", data
         self.VecAruco = Vector3()
         self.VecAruco = Vector3(data.position.x, data.position.y, data.position.z)
+        self.OriAruco = Quaternion(data.orientation.x, data.orientation.y, data.orientation.z, data.orientation.w)
         # rospy.logdebug("--------------------------------")
         # rospy.logdebug("aruco_pose.x (m): %f", self.VecAruco.x)
         # rospy.logdebug("aruco_pose.y (m): %f", self.VecAruco.y)
