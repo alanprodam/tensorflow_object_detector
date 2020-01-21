@@ -32,9 +32,6 @@ font = cv2.FONT_HERSHEY_PLAIN
 # SET FRACTION OF GPU YOU WANT TO USE HERE
 GPU_FRACTION = 0.4
 
-MAX_NUMBER_OF_BOXES = 1
-MINIMUM_CONFIDENCE = 0.95 
-
 ######### Set model here ############
 MODEL_NAME =  'ssd_mobilenet_v1_coco'
 # By default models are stored in data/models/
@@ -82,10 +79,14 @@ class Detector:
         self.sess = tf.Session(graph=detection_graph,config=config)
 
         self.DIAMETER_LANDMARCK_M = rospy.get_param('~markerSize_RCNN', 0.03)
-        self.DISTANCE_FOCAL = rospy.get_param('~self.distance_focal', 740)
+        self.DISTANCE_FOCAL = rospy.get_param('~distance_focal', 740)
+        self.MAX_NUMBER_OF_BOXES = rospy.get_param('~max_number_of_boxes', 6)
+        self.MINIMUM_CONFIDENCE = rospy.get_param('~minimum_confidence', 0.95)
 
-        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~markerSize_RCNN'), self.DIAMETER_LANDMARCK_M, 0.03)
-        rospy.logdebug("%s is %s default %f", rospy.resolve_name('~self.distance_focal'), self.DISTANCE_FOCAL, 750)
+        rospy.loginfo("%s is %f (defaut)", rospy.resolve_name('~markerSize_RCNN'), self.DIAMETER_LANDMARCK_M)
+        rospy.loginfo("%s is %f (defaut)", rospy.resolve_name('~distance_focal'), self.DISTANCE_FOCAL)
+        rospy.loginfo("%s is %f (defaut)", rospy.resolve_name('~max_number_of_boxes'), self.MAX_NUMBER_OF_BOXES)
+        rospy.loginfo("%s is %f (defaut)", rospy.resolve_name('~minimum_confidence'), self.MINIMUM_CONFIDENCE)
 
     def image_callback(self, data):
 
@@ -120,9 +121,9 @@ class Detector:
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             category_index,
-            min_score_thresh=MINIMUM_CONFIDENCE,
+            min_score_thresh=self.MINIMUM_CONFIDENCE,
             use_normalized_coordinates=True,
-            line_thickness=6)
+            line_thickness=4)
 
         objArray.detections = []
         objArray.header = data.header
