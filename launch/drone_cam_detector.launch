@@ -34,13 +34,13 @@
 <!--   <node pkg= "tensorflow_object_detector" name="filter" type="fusion_filter_kalman.py"  output="screen"> 
   </node> -->
 
-  <node pkg="image_view" type="image_view" name="RCNN">
+<!--   <node pkg="image_view" type="image_view" name="RCNN">
     <remap from="image" to="/rcnn/debug_image"/>
   </node>
 
   <node pkg="image_view" type="image_view" name="image_view_aruco">
       <remap from="/image" to="/aruco_double/result_img" />
       <param name="marker_size"        value="$(arg markerSize)"/>
-  </node>
+  </node> -->
 
 </launch>

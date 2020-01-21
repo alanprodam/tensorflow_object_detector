@@ -40,7 +40,7 @@ MAX_NUMBER_OF_BOXES = 1
 MINIMUM_CONFIDENCE = 0.99
 
 ######### Set model here ############
-MODEL_NAME =  'ssd_mobilenet_v1_coco'
+MODEL_NAME =  'modelo_congelado'
 # By default models are stored in data/models/
 MODEL_PATH = os.path.join(os.path.dirname(sys.path[0]),'data','models' , MODEL_NAME)
 # Path to frozen detection graph. This is the actual model that is used for the object detection.
@@ -187,9 +187,9 @@ class Detector:
 
         altura = float((metersDiametroLandmarck * distFocus_real) / pixelDiametro)
 
-        rospy.loginfo("--------------------------------")
-        rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
-        # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
+        # rospy.loginfo("--------------------------------")
+        # rospy.loginfo("Diametro Marcador Real:  %f", metersDiametroLandmarck)
+        # # rospy.loginfo("Distancia Focal Real:    %f", distFocus_real)
         # rospy.loginfo("Diametro (pixel):        %f", pixelDiametro)
         # rospy.loginfo("Altura Drone (m):        %f", altura)
         ###################################
