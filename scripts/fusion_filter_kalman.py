@@ -7,13 +7,6 @@ import sys
 import cv2
 import numpy as np
 import tf
-try:
-    import tensorflow as tsf
-except ImportError:
-    print("unable to import TensorFlow. Is it installed?")
-    print("  sudo apt install python-pip")
-    print("  sudo pip install tensorflow")
-    sys.exit(1)
 
 # ROS related imports of Odometry ans Navigation
 import rospy
@@ -22,11 +15,6 @@ from geometry_msgs.msg import Pose, PoseStamped, Quaternion, Twist, Vector3
 
 # ROS related imports of Vision
 from vision_msgs.msg import Detection2D, Detection2DArray, ObjectHypothesisWithPose
-
-# Object detection module imports
-import object_detection
-from object_detection.utils import label_map_util
-from object_detection.utils import visualization_utils as vis_util
 
 class Kalman(object):
     """docstring for Kalman"""
@@ -72,12 +60,15 @@ class Subscriber(object):
         self.VecAruco = Vector3()
         self.OriAruco = Quaternion()
 
+        self.list_z = []
+
         # Publishers
         self.pub_hibrid = rospy.Publisher('kalman/hybrid', Vector3)
-        self.pose_pub = rospy.Publisher("odom", PoseStamped)
+        self.odm_filter_pub = rospy.Publisher("odom_filter", Odometry)
 
         # transform tf
-        odom_broadcaster = tf.TransformBroadcaster()
+        tf_odom_to_drone = tf.TransformBroadcaster()
+        Keyframe = 0
 
         rospy.Subscriber("rcnn/objects", Detection2DArray, self.callbackPoseRCNN)
         rospy.Subscriber("aruco_double/pose",Pose, self.callbackPoseAruco)
@@ -111,9 +102,9 @@ class Subscriber(object):
             Zarray = np.concatenate((arrayNeral, arrayAruco), axis=None)
             self.kalman.R = np.diag(Zarray)
 
-            # rospy.logdebug("------------------------")
-            # rospy.logdebug("arrayNeral : %f", covNeural)
-            # rospy.logdebug("arrayAruco : %f", covAruco)
+            rospy.logdebug("------------------------")
+            rospy.logdebug("arrayNeral : %f", covNeural)
+            rospy.logdebug("arrayAruco : %f", covAruco)
 
             self.kalman.predict()
             self.kalman.update(Z)
@@ -128,30 +119,29 @@ class Subscriber(object):
             rospy.logdebug("kalman.sensor[1].y : %f", vec.y)
             rospy.logdebug("kalman.sensor[1].z : %f", vec.z)
 
-            # publish the transform over tf
-            odom_broadcaster.sendTransform(
-                (vec.x,vec.y,vec.z),
-                (self.OriAruco.x, self.OriAruco.y, self.OriAruco.z, self.OriAruco.w),
-                rospy.Time.now(),
-                "odom",
-                "odom_hybrid"
-            )
+            hybrid_odom = Odometry()
+            hybrid_odom.header.stamp = rospy.Time.now()
+            hybrid_odom.header.frame_id = "hybrid_odom"
+            hybrid_odom.header.seq = Keyframe
+            hybrid_odom.child_frame_id = "odom"
 
-            hybrid = PoseStamped()
-            hybrid.header.stamp = rospy.Time.now()
-            hybrid.header.frame_id = "odom_hybrid"
+            # since all odometry is 6DOF we'll need a quaternion created from yaw
+            #odom_quat = tf.transformations.quaternion_from_euler(0, 0, 3)
 
-            # # set the position
-            hybrid.pose = Pose(vec, self.OriAruco)
+            # set the position
+            hybrid_odom.pose.pose = Pose(vec, self.OriAruco)
+            
+            tf_odom_to_drone.sendTransform(
+                          (self.kalman.x[0],self.kalman.x[1],self.kalman.x[2]), 
+                          (self.OriAruco.x,self.OriAruco.y,self.OriAruco.z,self.OriAruco.w), 
+                          hybrid_odom.header.stamp, 
+                          "hybrid_odom",
+                          "odom") #world
+            Keyframe += 1
 
-            # # set the velocity
-            hybrid.child_frame_id = "odom"
-            # hybrid.twist.twist = Twist(Vector3(vx, vy, 0), Vector3(0, 0, vth))
-
-            # # publish the message
-            self.pose_pub.publish(hybrid)
-
+            # publish the message
             self.pub_hibrid.publish(vec)
+            self.odm_filter_pub.publish(hybrid_odom)
 
             r.sleep()
 
@@ -177,6 +167,14 @@ class Subscriber(object):
             # rospy.logdebug("rcnn_pose.x (m): %f", self.VecNeural.x)
             # rospy.logdebug("rcnn_pose.y (m): %f", self.VecNeural.y)
             # rospy.logdebug("rcnn_pose.z (m): %f", self.VecNeural.z)
+
+            # # Filter yaw
+            # if len(self.list_z) < 5:
+            #     self.list_z.append(z)
+
+            # else:
+            #     self.list_z.append(z)
+            #     del self.list_z[0]
 
 
     def callbackPoseAruco(self, data):

@@ -121,20 +121,20 @@ class Detector:
             np.squeeze(classes).astype(np.int32),
             np.squeeze(scores),
             category_index,
+            max_boxes_to_draw=MAX_NUMBER_OF_BOXES,
             min_score_thresh=MINIMUM_CONFIDENCE,
             use_normalized_coordinates=True,
             line_thickness=6)
 
         objArray.detections =[]
         objArray.header=data.header
-        object_count=1
 
         # Object search
-        for i in range(len(objects)):
-            object_count+=1
-            objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
-            #call fuction to return z of drone
-            #z_drone = self.distanceLandmarck(objects[i],cv_image)
+        if len(objects) > 0:
+            for i in range(len(objects)):
+                objArray.detections.append(self.object_predict(objects[i],data.header,image_np,cv_image))
+                #call fuction to return z of drone
+                #z_drone = self.distanceLandmarck(objects[i],cv_image)
 
         self.object_pub.publish(objArray)
 
@@ -290,7 +290,7 @@ def main(args):
         rospy.spin()
     except KeyboardInterrupt:
         print("ShutDown")
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 
 if __name__=='__main__':
     main(sys.argv)
